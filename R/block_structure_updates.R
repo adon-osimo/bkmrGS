@@ -1,56 +1,60 @@
-#obviously I would have to update the main function as well, since I need to now pass in Vinv as a list but this was my intial
-#idea for what the upadtes would look like if we used the block Vinv function instead
-#hypothetically the beta, sigma, ystar, and ystar no h aren't too bad to change, as we are not just dealing with a Vinv list and 
-#but the later updates, like r, lambda, rdeltas, and I beleive h's need to have that Vinv updated
-#I also think that I should be passing in my X as a list? seperated by each group? Maybe? This I think would speed the process up
-#of running my code in the updates? 
 beta.update.block <- function(X_list, Vinv_list, y_list, sigsq.eps) {
+  ## get number of groups and number of covariates, and set vectors for storage 
   p <- ncol(X_list[[1]])
   G <- length(X_list)
+  XtVinvX <- matrix(0, p, p)
+  XtVinvy <- rep(0, p)
   
-  XtVinvX <- matrix(0,p,p)
-  XtVinvy <- rep(0,p)
-  
-  for(g in 1:G){
+  ## iterate through groups to get required inverses and multiplications of inverses 
+  for(g in 1:G) {
+    X_g <- X_list[[g]]       
+    y_g <- y_list[[g]]       
+    Vinv_g <- Vinv_list[[g]] 
+
     
-    X_g <- X_list[[g]]
-    y_g <- y_list[[g]]
-    Vinv_g <- Vinv_list[[g]]
+    if(length(sigsq.eps) > 1) {
+      W_g <- diag(1 / sigsq.eps[1:nrow(X_g)])  
+    } else {
+      W_g <- diag(1 / sigsq.eps, nrow(X_g))
+    }
     
-    VinvX_g <- Vinv_g %*% X_g
-    Vinvy_g <- Ving_g %*% y_g
-    
-    XtVinvX <- XtVinvX + sigsq.eps[g] * crossprod(X_g, VinvX_g)
-    XtVinvy <- XtVinvy + sigsq.eps[g] * crossprod(X_g, Vinvy_g)
+    XtVinvX <- XtVinvX + t(X_g) %*% Vinv_g %*% W_g %*% X_g
+    XtVinvy <- XtVinvy + t(X_g) %*% Vinv_g %*% W_g %*% y_g
   }
   
-  vbeta <- chol2inv(chol(XtinvX))
-  cholVbeta <- chol(vbeta)
-  
+  ## calculate the beta hat and randomly alter those beta's to get a new beta hat
+  Vbeta <- chol2inv(chol(XtVinvX))
   betahat <- Vbeta %*% XtVinvy
   
+  cholVbeta <- chol(Vbeta)
   n01 <- rnorm(p)
   
   betahat + t(cholVbeta) %*% n01
 }
-
 sigsq.eps.update.block <- function(y_list, X_list, beta, Vinv_list, a.eps=1e-3, b.eps=1e-3) {
-  G <- length(X_list)
-  sigsq <- numeric(G)
+  ## set variables for updating
+  quadform <- 0
+  n_total <- 0
   
-  for(g in 1:G){
-    y_g <- y_list[[g]]
-    X_g <- X_list[[g]]
-    Vinv_g <- Vinv_list[[g]]
+  ## iterate through number of groups
+  for (g in seq_along(y_list)) {
+    e_g <- y_list[[g]] - X_list[[g]] %*% beta
     
-    mu_g <- y_g - X_g %*% beta
-    
-    sigsq[g] <- 1/rgamma(1, a.eps + length(mu_g)/2, b.eps + 1/2*crossprod(mu_g, Vinv_g)%*%mu_g)
+    quadform <- quadform + t(e_g) %*% Vinv_list[[g]] %*% e_g
+    n_total <- n_total + length(e_g)
   }
-  sigsq
+  
+  quadform <- as.numeric(quadform)
+  
+  shape <- a.eps + n_total / 2
+  rate  <- b.eps + quadform / 2
+  
+  ## sample randomly 
+  sigsq.eps <- 1 / rgamma(1, shape = shape, rate = rate)
+  sigsq.eps
 }
 
-ystar.update <- function(y, X, beta, h) {
+ystar.update.block <- function(y, X, beta, h) {
   mu <-  drop(h + X %*% beta)
   lower <- ifelse(y == 1, 0, -Inf)
   upper <- ifelse(y == 0, 0,  Inf)
@@ -58,7 +62,7 @@ ystar.update <- function(y, X, beta, h) {
   drop(samp)
 }
 #' @importFrom tmvtnorm rtmvnorm
-ystar.update.noh <- function(y, X, beta, Vinv, ystar) {
+ystar.update.noh.block <- function(y, X, beta, Vinv, ystar) {
   mu <-  drop(X %*% beta)
   lower <- ifelse(y == 1, 0, -Inf)
   upper <- ifelse(y == 0, 0,  Inf)
@@ -67,7 +71,7 @@ ystar.update.noh <- function(y, X, beta, Vinv, ystar) {
   drop(samp)
 }
 
-r.update <- function(r, whichcomp, delta, lambda, y, X, beta, sigsq.eps, Vcomps, Z, data.comps, control.params, rprop.gen, rprop.logdens, rprior.logdens, modifier = NULL, ...) {
+r.update.block <- function(r, whichcomp, delta, lambda, y, X, beta, sigsq.eps, Vcomps, Z, data.comps, control.params, rprop.gen, rprop.logdens, rprior.logdens, modifier = NULL, ...) {
   # r.params <- set.r.params(r.prior = control.params$r.prior, comp = whichcomp, r.params = control.params$r.params)
   r.params <- make_r_params_comp(control.params$r.params, whichcomp)
   rcomp <- unique(r[whichcomp])
@@ -89,7 +93,7 @@ r.update <- function(r, whichcomp, delta, lambda, y, X, beta, sigsq.eps, Vcomps,
   r.star[whichcomp] <- rcomp.star
   
   ## M-H step
-  r.return <- MHstep(r=r, lambda=lambda, lambda.star=lambda.star, r.star=r.star, delta=delta, delta.star=delta.star, y=y, X=X, Z=Z, beta=beta, sigsq.eps=sigsq.eps, diffpriors=diffpriors, negdifflogproposal=negdifflogproposal, Vcomps=Vcomps, move.type=move.type, data.comps=data.comps, modifier = modifier)
+  r.return <- MHstep.block(r=r, lambda=lambda, lambda.star=lambda.star, r.star=r.star, delta=delta, delta.star=delta.star, y=y, X=X, Z=Z, beta=beta, sigsq.eps=sigsq.eps, diffpriors=diffpriors, negdifflogproposal=negdifflogproposal, Vcomps=Vcomps, move.type=move.type, data.comps=data.comps, modifier = modifier)
   return(r.return)
 }
 
@@ -128,7 +132,7 @@ rdelta.comp.update <- function(r, delta, lambda, y, X, beta, sigsq.eps, Vcomps, 
   lambda.star <- lambda
   
   ## M-H step
-  return(MHstep(r=r, lambda=lambda, lambda.star=lambda.star, r.star=r.star, delta=delta, delta.star=delta.star, y=y, X=X, Z=Z, beta=beta, sigsq.eps=sigsq.eps, diffpriors=diffpriors, negdifflogproposal=negdifflogproposal, Vcomps=Vcomps, move.type=move.type, data.comps=data.comps, modifier = modifier))
+  return(MHstep.block(r=r, lambda=lambda, lambda.star=lambda.star, r.star=r.star, delta=delta, delta.star=delta.star, y=y, X=X, Z=Z, beta=beta, sigsq.eps=sigsq.eps, diffpriors=diffpriors, negdifflogproposal=negdifflogproposal, Vcomps=Vcomps, move.type=move.type, data.comps=data.comps, modifier = modifier))
 }
 
 rdelta.group.update <- function(r, delta, lambda, y, X, beta, sigsq.eps, Vcomps, Z, ztest, data.comps, control.params, rprop.gen1, rprior.logdens, rprop.logdens1, rprop.gen2, rprop.logdens2, modifier = NULL, ...) { ## grouped variable selection
@@ -224,10 +228,10 @@ rdelta.group.update <- function(r, delta, lambda, y, X, beta, sigsq.eps, Vcomps,
   lambda.star <- lambda
   
   ## M-H step
-  return(MHstep(r=r, lambda=lambda, lambda.star=lambda.star, r.star=r.star, delta=delta, delta.star=delta.star, y=y, X=X, Z=Z, beta=beta, sigsq.eps=sigsq.eps, diffpriors=diffpriors, negdifflogproposal=negdifflogproposal, Vcomps=Vcomps, move.type=move.type, data.comps=data.comps, modifier = modifier))
+  return(MHstep.block(r=r, lambda=lambda, lambda.star=lambda.star, r.star=r.star, delta=delta, delta.star=delta.star, y=y, X=X, Z=Z, beta=beta, sigsq.eps=sigsq.eps, diffpriors=diffpriors, negdifflogproposal=negdifflogproposal, Vcomps=Vcomps, move.type=move.type, data.comps=data.comps, modifier = modifier))
 }
 
-lambda.update <- function(r, delta, lambda, whichcomp=1, y, X, Z = Z, beta, sigsq.eps, Vcomps, data.comps, control.params, modifier = NULL) {
+lambda.update.block <- function(r, delta, lambda, whichcomp=1, y, X, Z = Z, beta, sigsq.eps, Vcomps, data.comps, control.params, modifier = NULL) {
   lambda.jump <- control.params$lambda.jump[whichcomp]
   mu.lambda <- control.params$mu.lambda[whichcomp]
   sigma.lambda <- control.params$sigma.lambda[whichcomp]
@@ -249,12 +253,12 @@ lambda.update <- function(r, delta, lambda, whichcomp=1, y, X, Z = Z, beta, sigs
   lambda.star[whichcomp] <- lambdacomp.star
   
   ## M-H step
-  return(MHstep(r=r, lambda=lambda, lambda.star=lambda.star, r.star=r.star, delta=delta, delta.star=delta.star, y=y, X=X, Z=Z, beta=beta, sigsq.eps=sigsq.eps, diffpriors=diffpriors, negdifflogproposal=negdifflogproposal, Vcomps=Vcomps, move.type=move.type, data.comps=data.comps, modifier = modifier))
+  return(MHstep.block(r=r, lambda=lambda, lambda.star=lambda.star, r.star=r.star, delta=delta, delta.star=delta.star, y=y, X=X, Z=Z, beta=beta, sigsq.eps=sigsq.eps, diffpriors=diffpriors, negdifflogproposal=negdifflogproposal, Vcomps=Vcomps, move.type=move.type, data.comps=data.comps, modifier = modifier))
 }
 
-MHstep <- function(r, lambda, lambda.star, r.star, delta, delta.star, y, X, Z, beta, sigsq.eps, diffpriors, negdifflogproposal, Vcomps, move.type, data.comps, modifier = NULL) {
+MHstep.block <- function(r, lambda, lambda.star, r.star, delta, delta.star, y, X, Z, beta, sigsq.eps, diffpriors, negdifflogproposal, Vcomps, move.type, data.comps, modifier = NULL) {
   ## compute log M-H ratio
-  Vcomps.star <- makeVcomps(r.star, lambda.star, Z, data.comps, modifier = modifier)
+  Vcomps.star <- makeVcompsBlocked(r.star, lambda.star, Z, data.comps, modifier = modifier)
   mu <- y - X%*%beta
   if(data.comps$gs.sig){
     sigs <- sigsq.eps
@@ -279,7 +283,7 @@ MHstep <- function(r, lambda, lambda.star, r.star, delta, delta.star, y, X, Z, b
   return(list(r=r, lambda=lambda, delta=delta, acc=acc, Vcomps=Vcomps, move.type=move.type))
 }
 
-h.update <- function(lambda, Vcomps, sigsq.eps, y, X, beta, r, Z, data.comps, modifier=NULL, kernel.method) {
+h.update.block <- function(lambda, Vcomps, sigsq.eps, y, X, beta, r, Z, data.comps, modifier=NULL, kernel.method) {
   
   #set the modifier that is passed to Vcomps to be null if using one-kernel method, because it is not needed to block the kernel
   #and set modifier passed to Vcomps to be the modifier if using two-kernel method, because it is needed to block the kernel
@@ -290,7 +294,7 @@ h.update <- function(lambda, Vcomps, sigsq.eps, y, X, beta, r, Z, data.comps, mo
   }
   
   if (is.null(Vcomps)) {
-    Vcomps <- makeVcomps(r = r, lambda = lambda, Z = Z, data.comps = data.comps, modifier = kern_modifier)
+    Vcomps <- makeVcompsBlocked(r = r, lambda = lambda, Z = Z, data.comps = data.comps, modifier = kern_modifier)
   }
   if(is.null(Vcomps$Q)) {
     Kpart <- makeKpart(r, Z)
@@ -336,7 +340,7 @@ h.update <- function(lambda, Vcomps, sigsq.eps, y, X, beta, r, Z, data.comps, mo
   hcomps
 }
 
-newh.update <- function(Z, Znew, mod_new, Vcomps, lambda, sigsq.eps, r, y, X, beta, data.comps, modifier = NULL, kernel.method) {
+newh.update.block <- function(Z, Znew, mod_new, Vcomps, lambda, sigsq.eps, r, y, X, beta, data.comps, modifier = NULL, kernel.method) {
   
   #set the modifier that is passed to Vcomps to be null if using two-kernel method (because modifier is not in kernel)
   if(kernel.method == "one"){
@@ -368,7 +372,7 @@ newh.update <- function(Z, Znew, mod_new, Vcomps, lambda, sigsq.eps, r, y, X, be
     }
     
     if(is.null(Vcomps)) {
-      Vcomps <- makeVcomps(r = r, lambda = lambda, Z = Z, data.comps = data.comps, modifier = kern_modifier)
+      Vcomps <- makeVcompsBlocked(r = r, lambda = lambda, Z = Z, data.comps = data.comps, modifier = kern_modifier)
     }
     Vinv <- Vcomps$Vinv
     
@@ -416,7 +420,7 @@ newh.update <- function(Z, Znew, mod_new, Vcomps, lambda, sigsq.eps, r, y, X, be
     }
     
     if(is.null(Vcomps)) {
-      Vcomps <- makeVcomps(r = r, lambda = lambda, Z = Z, data.comps = data.comps, modifier = kern_modifier)
+      Vcomps <- makeVcompsBlocked(r = r, lambda = lambda, Z = Z, data.comps = data.comps, modifier = kern_modifier)
       h.star.postvar.sqrt <- sqrt(sigsq.eps*lambda[1])*forwardsolve(t(Vcomps$cholR), Vcomps$Q)
       h.star.postmean <- lambda[1]*Vcomps$Q %*% Vcomps$Rinv %*% Vcomps$K10 %*% (y - X %*% beta)
       Vcomps$hsamp.star <- h.star.postmean + crossprod(h.star.postvar.sqrt, rnorm(length(h.star.postmean)))
