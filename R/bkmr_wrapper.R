@@ -52,7 +52,7 @@ kmbayesWrapper <- function(formula, data,
                            starting.values = NULL, control.params = NULL, varsel = FALSE, 
                            groups = NULL, knots = NULL, ztest = NULL, rmethod = "varying",
                            est.h = FALSE, kernel.method = "two",
-                           gs.tau = TRUE, gs.sig = FALSE) {
+                           gs.tau = TRUE, gs.sig = FALSE, burnin = iter/2, Znew = NULL) {
   
   #seperate out the formula? 
   #checks
@@ -97,11 +97,17 @@ kmbayesWrapper <- function(formula, data,
   #parse h()  
   h_call <- str2lang(h_term)
   args <- as.list(h_call)[-1]
-  arg_names <- names(args)
   
-  #seperate Z
-  Z_vars <- args[arg_names == "" | is.null(arg_names)]
-  Z_names <- sapply(Z_vars, deparse)
+  #if arg_names is not null, we have a modifier
+  if(!is.null(names(args))){
+    arg_names <- names(args)
+    
+    Z_vars <- args[arg_names == "" | is.null(arg_names)]
+    Z_names <- sapply(Z_vars, deparse)
+  }else{
+    #pull out the arguments in h()
+    Z_names <- as.character(args)
+  }
   
   #check Z
   if (length(Z_names) == 0) {
@@ -113,24 +119,22 @@ kmbayesWrapper <- function(formula, data,
   if (length(missing_Z) > 0) {
     stop(
       sprintf(
-        "Variables in kernel() not found in data: %s",
+        "Variables in h() not found in data: %s",
         paste(missing_Z, collapse = ", ")
       )
     )
   }
   
-  #seperate mod/modifier
+  #separate mod/modifier
   mod_name <- "" 
   if("mod" %in% arg_names){
     mod_name <- deparse(args[["mod"]])
-  } 
-  else if ("modifier" %in% arg_names){
+  } else if ("modifier" %in% arg_names){
     mod_name <- deparse(args[["modifier"]])
-  }
-  else NULL
+  }else mod_name <- NULL
   
-  #check modifer 
-  if(length(mod_name) != 1){
+  #check modifier 
+  if(length(mod_name) > 1){
     stop("Modifier can only be one column")
   }
   
@@ -162,7 +166,14 @@ kmbayesWrapper <- function(formula, data,
   #passed all checks 
   
   y <- data[[response]]
-  X <- data[c(X_terms, mod_name)]
+  if(!is.null(mod_name)){
+    X <- data[c(X_terms, mod_name)]
+  } else{
+    X <- data[c(X_terms)]
+    kernel.method = "one"
+    gs.tau = FALSE
+    gs.sig = FALSE
+  }
   Z <- data[Z_names]
   modifier <- mod_name
   
@@ -170,8 +181,7 @@ kmbayesWrapper <- function(formula, data,
                         iter, family, id, verbose, starting.values, control.params, varsel, 
                         groups, knots, ztest, rmethod,
                         est.h, kernel.method,
-                        gs.tau, gs.sig))
-    
+                        gs.tau, gs.sig, burnin))
 
     
 }

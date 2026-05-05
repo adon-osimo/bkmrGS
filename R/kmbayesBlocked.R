@@ -1,6 +1,11 @@
-get_block_ids <- function(modifier){
-  groups <- apply(modifier, 1, paste, collapse = "")
-  split(seq_along(groups), groups)
+get_block_ids <- function(modifier, p = NULL){
+  if(!is.null(modifier)){
+    groups <- apply(modifier, 1, paste, collapse = "")
+    split(seq_along(groups), groups)
+  }
+  else{
+    list(seq_len(p))
+  }
 }
 
 makeVcompsBlocked <- function(r, lambda, Z, data.comps, modifier = NULL) {
@@ -9,7 +14,7 @@ makeVcompsBlocked <- function(r, lambda, Z, data.comps, modifier = NULL) {
     #Check if we have a modifier
     #if so, use the sped up version levering block structure
     if(!is.null(modifier)){
-      block_ids <- get_block_ids(modifier)
+      block_ids <- get_block_ids(modifier, nrow(Z))
       G <- length(block_ids)
       Z_list <- lapply(block_ids, function(id) Z[id, ,drop = FALSE])
     }
@@ -56,6 +61,9 @@ makeVcompsBlocked <- function(r, lambda, Z, data.comps, modifier = NULL) {
       
       Vinv[id,id] <- Vinv_list[[g]]
     }
+    
+    
+
     
     Vcomps <- list(Vinv = Vinv, Vinv_list = Vinv_list, logdetVinv = logdetVinv, scalar_lambda = scalar_lambda, logdetVinv_list = logdetVinv_list)
   } else {## predictive process approach
@@ -179,7 +187,7 @@ kmbayesBlocked <- function(y, Z, X = NULL,
                     starting.values = NULL, control.params = NULL, varsel = FALSE, 
                     groups = NULL, knots = NULL, ztest = NULL, rmethod = "varying",
                     est.h = FALSE, kernel.method = "two",
-                    gs.tau = TRUE, gs.sig = FALSE) {
+                    gs.tau = TRUE, gs.sig = FALSE, burnin = iter/2) {
   #browser()
   missingX <- is.null(X)
   if (missingX) X <- matrix(0, length(y), 1)
@@ -236,6 +244,9 @@ kmbayesBlocked <- function(y, Z, X = NULL,
     modifier <- as.matrix(model.matrix(~modifier)[,-1])
     X <- as.matrix(model.matrix(~., data = X_full)[,-1])
   }
+  else{
+    X <- as.matrix(model.matrix(~., data = X_full)[,-1])
+  }
   
   #if(!is.null(modifier)){
   #  orig_modifier <- modifier
@@ -281,6 +292,16 @@ kmbayesBlocked <- function(y, Z, X = NULL,
   stopifnot (is.numeric(X), nrow(X) == length(y), anyNA(X) == FALSE) 
   
   ##Argument check 2: for those with defaults, write message and reset to default if invalid
+  if (burnin >= iter) {
+    stop("burnin must be less than iter")
+  }
+  
+  else if (burnin < 0) {
+    stop("burnin must be non-negative")
+  }
+  else{
+    burnin <- floor(burnin)
+  }
   if (iter < 1) {
     message ("invalid input for iter, resetting to default value 1000")
     nsamp <- 1000
@@ -585,7 +606,7 @@ kmbayesBlocked <- function(y, Z, X = NULL,
   ## components
   Vcomps <- makeVcompsBlocked(r = chain$r[1, ], lambda = chain$lambda[1, ], Z = Z, data.comps = data.comps, modifier = kern_modifier)
   
-  block_ids <- get_block_ids(kern_modifier)
+  block_ids <- get_block_ids(kern_modifier, nrow(X))
   
   X_list <- lapply(block_ids, function(id) X[id, , drop = FALSE])
   y_list <- lapply(block_ids, function(id) y[id])
@@ -718,6 +739,7 @@ kmbayesBlocked <- function(y, Z, X = NULL,
   control.params$r.params <- NULL
   chain$time2 <- Sys.time()
   chain$iter <- nsamp
+  chain$burnin <- burnin
   chain$family <- family
   chain$starting.values <- starting.values
   chain$control.params <- control.params
@@ -852,7 +874,7 @@ summary.bkmrfit <- function(object, q = c(0.025, 0.975), digits = 5, show_ests =
     print(accep_rates)
   }
   if (show_ests) {
-    sel <- with(x, seq(floor(iter/2) + 1, iter))
+    sel <- with(x, seq(burnin + 1, iter))
     cat("\nParameter estimates (based on iterations ", min(sel), "-", max(sel), "):\n", sep = "")
     ests <- ExtractEsts(x, q = q, sel = sel)
     if (!is.null(ests$h)) {
