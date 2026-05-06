@@ -32,7 +32,7 @@
 #' TracePlot(fit = fitkm, par = "lambda")
 #' TracePlot(fit = fitkm, par = "sigsq.eps")
 #' TracePlot(fit = fitkm, par = "r", comp = 1)
-TracePlot <- function(fit, par, comp = 1, sel = NULL, main = "", xlab = "iteration", ylab = "parameter value", ...) {
+TracePlot <- function(fit, par, comp = 1, sel = NULL, main = "", xlab = "iteration", ylab = NULL, ...) {
     samps <- ExtractSamps(fit, sel = sel)[[par]]
     if (!is.null(ncol(samps))) {
         nm <- colnames(samps)[comp]
@@ -40,7 +40,12 @@ TracePlot <- function(fit, par, comp = 1, sel = NULL, main = "", xlab = "iterati
     } else {
         nm <- par
     }
-    main <- paste0(main, "\n(", nm, " = ", format(mean(samps), digits = 2), ")")
+    
+    if(is.null(ylab)){
+      ylab = paste0(as.character(nm), " value")
+    }
+    
+    main <- paste0(main, "\nTrace Plot for ", nm)
     plot(samps, type = "l", main = main, xlab = xlab,  ylab = ylab, ...)
-    abline(h = mean(samps), col = "blue", lwd = 2)
+    abline(h = mean(samps), col = "#D9782D", lwd = 2) #originally blue but I made it green, then orange, go CSU
 }
