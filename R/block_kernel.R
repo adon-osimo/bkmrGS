@@ -5,6 +5,7 @@
 block_kernel <- function(mod_vec1, mod_vec2, K){
   
   #convert the contrast modifier matrices to unique modifier groups 
+  dim(mod_vec1)
   m1 <- apply(mod_vec1, 1, paste, collapse = "")
   m2 <- apply(mod_vec2, 1, paste, collapse = "")
 

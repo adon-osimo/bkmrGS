@@ -19,7 +19,7 @@ Description: Implements group-separable Bayesian Kernel Machine Regression model
   exposures modified by a categorical variable.
 URL: https://github.com/ddemateis/bkmrGS
 Depends:
-    R (>= 3.1.2)
+    R (>= 3.5)
 License: GPL-2
 LazyData: true
 Imports:
@@ -34,7 +34,7 @@ Imports:
     mvtnorm,
     tmvtnorm,
     tibble
-RoxygenNote: 7.3.2
+RoxygenNote: 7.3.3
 Suggests: 
     knitr,
     rmarkdown

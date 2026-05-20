@@ -647,7 +647,6 @@ kmbayes <- function(y, Z, X = NULL,
 #' @return No return value, prints basic summary of fit to console
 #' 
 #' @examples
-#' @examples
 #' ## First generate data set
 #' y <- ex_data$y
 #' Z <- ex_data$Z
@@ -683,7 +682,6 @@ print.bkmrfit <- function(x, digits = 5, ...) {
 #' 
 #' @return No return value, prints more detailed summary of fit to console
 #' 
-#' @examples
 #' @examples
 #' ## First generate data set
 #' y <- ex_data$y

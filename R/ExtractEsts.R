@@ -7,13 +7,15 @@
 SummarySamps <- function(s, q = c(0.025, 0.25, 0.5, 0.75, 0.975)) {
     qs <- quantile(s, q)
     names(qs) <- paste0("q_", 100*q)
-    summ <- c(mean = mean(s), sd = sd(s), qs, ess = effective_sample_size(s))
+    std <- sd(s)
+    ess <- effective_sample_size(s)
+    summ <- c(mean = mean(s), sd = std, mean_se = mean_standard_error(std, ess), qs, ess = ess)
     summ <- matrix(summ, nrow = 1, dimnames = list(NULL, names(summ)))
 }
 
-#'Compute the effective sample size
+#' Compute the effective sample size
 #'
-#'@param par vector for specified parameter
+#' @param x vector for specified parameter
 #'
 effective_sample_size <- function(x){
   n <- length(x)
@@ -27,6 +29,20 @@ effective_sample_size <- function(x){
   ess <- n / (1 + 2 * sum(positive_acf))
   
   return(ess)
+}
+
+#' Compute the mean standard error, like in Rstan and Stan
+#' Take the standard deviation estimate and divide it by the square root of the ess
+#'
+#' @param std value for standard deviation
+#' @param ess value for effecitve sample size
+#'
+mean_standard_error <- function(std, ess){
+  ret <- NULL
+  if(!is.null(ess)){
+    ret <- std / sqrt(ess)
+  }
+  return(ret)
 }
 
 
@@ -63,7 +79,7 @@ effective_sample_size <- function(x){
 ExtractEsts <- function(fit, q = c(0.025, 0.25, 0.5, 0.75, 0.975), sel = NULL) {
   if (inherits(fit, "bkmrfit")) {
     if (is.null(sel)) {
-      sel <- with(fit, seq(burnin + 1, iter))
+      sel <- with(fit, seq(floor(iter/2) + 1, iter))
     }
     sigsq.eps <- SummarySamps(fit$sigsq.eps[sel], q = q)
     rownames(sigsq.eps) <- "sigsq.eps"
@@ -127,7 +143,7 @@ ExtractEsts <- function(fit, q = c(0.025, 0.25, 0.5, 0.75, 0.975), sel = NULL) {
 #'
 #' Extract samples of each parameter from the BKMR fit
 #'
-#' @inheritParams ExtractEsts2
+#' @inheritParams ExtractEsts
 #'
 #' @export
 #' @return a list where each component contains the posterior samples of one of the parameters (or vector of parameters) being estimated
@@ -151,7 +167,7 @@ ExtractEsts <- function(fit, q = c(0.025, 0.25, 0.5, 0.75, 0.975), sel = NULL) {
 ExtractSamps <- function(fit, sel = NULL) {
   if (inherits(fit, "bkmrfit")) {
     if (is.null(sel)) {
-      sel <- with(fit, seq(burnin + 1, iter))
+      sel <- with(fit, seq(floor(iter/2) + 1, iter))
     }
     
     sigsq.eps <- fit$sigsq.eps[sel]
@@ -193,25 +209,25 @@ ExtractSamps <- function(fit, sel = NULL) {
 #' @return a list where each component is a data frame containing the summary statistics of the posterior distribution of one of the parameters (or vector of parameters) being estimated
 #' 
 #' @examples
-#' ## First generate data set
-#' y <- ex_data$y
-#' Z <- ex_data$Z
-#' modifier <- ex_data$X$Sex
-#' X_full <- ex_data$X[,-2] #remove Sex from the covariate matrix because it is the modifier
-#' #create design matrix to account for factor variables, remove the intercept column
-#' X <- model.matrix(~., data=X_full)[,-1] 
-#' 
 #' ## Fit model 
 #' ## Using only 10 iterations to make example run quickly
 #' ## Typically should use a large number of iterations for inference
 #' set.seed(111)
-#' fitkm <- kmbayes(y = y, Z = Z, modifier = modifier, X = X, iter = 10, verbose = FALSE) 
+#' fitkm <- kmbayesWrapper(y ~ h(Log_Lead, Log_Manganese, Log_Arsenic, mod = Sex) +
+#'                           Age + Gestation + Delivery + Birth_order +
+#'                           Education_parent1 + Education_parent2 + Smoking +
+#'                           HOME_emotional + HOME_avoid + HOME_careg + 
+#'                           HOME_env + HOME_play + HOME_stim + 
+#'                           Energy, 
+#'                         data = Liu_data, 
+#'                         iter = 10, 
+#'                         verbose = FALSE) 
 #' 
-#' ests <- ExtractEsts(fitkm)
+#' ests <- GetEsts(fitkm)
 #' names(ests)
 #' ests$beta
 
-ExtractEsts2 <- function(fit, par = NULL, q = c(0.025, 0.25, 0.5, 0.75, 0.975), sel = NULL, digits = 5) {
+GetEsts <- function(fit, par = NULL, q = c(0.025, 0.25, 0.5, 0.75, 0.975), sel = NULL, digits = 5) {
   if(length(par) > 1){
     stop("par must be exactly one parameter")
   }
@@ -271,7 +287,7 @@ ExtractEsts2 <- function(fit, par = NULL, q = c(0.025, 0.25, 0.5, 0.75, 0.975), 
       colnames(ystar) <- colnames(sigsq.eps)
     }
     
-    ret <- list(sigsq.eps = data.frame(sigsq.eps), beta = beta, lambda = lambda, r = r)
+    ret <- list(sigsq.eps = sigsq.eps, beta = beta, lambda = lambda, r = r)
     if (fit$est.h) ret$h <- h
     if (!is.null(fit$hnew)) ret$hnew <- hnew
     if (!is.null(fit$ystar)) ret$ystar <- ystar
@@ -332,6 +348,7 @@ ExtractEsts2 <- function(fit, par = NULL, q = c(0.025, 0.25, 0.5, 0.75, 0.975), 
   else{
     stop('Invalid parameter supllied, must be one of "beta", "sigsq.eps", "r", "lambda", "h", "hnew", or "ystar" ')
   }
+  cat("\nParameter estimates (based on iterations ", min(sel), "-", max(sel), "):\n", sep = "")
   ret
 }
 
@@ -339,28 +356,28 @@ ExtractEsts2 <- function(fit, par = NULL, q = c(0.025, 0.25, 0.5, 0.75, 0.975), 
 #'
 #' Extract samples of each parameter from the BKMR fit
 #'
-#' @inheritParams ExtractEsts2
+#' @inheritParams GetEsts
 #'
 #' @export
 #' @return a list where each component contains the posterior samples of one of the parameters (or vector of parameters) being estimated
 #' 
 #' @examples
-#' ## First generate data set
-#' y <- ex_data$y
-#' Z <- ex_data$Z
-#' modifier <- ex_data$X$Sex
-#' X_full <- ex_data$X[,-2] #remove Sex from the covariate matrix because it is the modifier
-#' #create design matrix to account for factor variables, remove the intercept column
-#' X <- model.matrix(~., data=X_full)[,-1] 
-#' 
 #' ## Fit model 
 #' ## Using only 10 iterations to make example run quickly
 #' ## Typically should use a large number of iterations for inference
 #' set.seed(111)
-#' fitkm <- kmbayes(y = y, Z = Z, modifier = modifier, X = X, iter = 10, verbose = FALSE) 
+#' fitkm <- kmbayesWrapper(y ~ h(Log_Lead, Log_Manganese, Log_Arsenic, mod = Sex) +
+#'                           Age + Gestation + Delivery + Birth_order +
+#'                           Education_parent1 + Education_parent2 + Smoking +
+#'                           HOME_emotional + HOME_avoid + HOME_careg + 
+#'                           HOME_env + HOME_play + HOME_stim + 
+#'                           Energy, 
+#'                         data = Liu_data, 
+#'                         iter = 10, 
+#'                         verbose = FALSE) 
 #' 
-#' samps <- ExtractSamps(fitkm)
-ExtractSamps2 <- function(fit, sel = NULL) {
+#' samps <- GetSamps(fitkm)
+GetSamps <- function(fit, par = NULL, sel = NULL) {
   if (inherits(fit, "bkmrfit")) {
     if (is.null(sel)) {
       sel <- with(fit, seq(burnin + 1, iter))
@@ -386,6 +403,10 @@ ExtractSamps2 <- function(fit, sel = NULL) {
   res <- list(sigsq.eps = sigsq.eps, sig.eps = sig.eps, r = r, beta = beta, lambda = lambda, tau = tau, h = h)
   if (!is.null(fit$hnew)) res$hnew <- hnew
   if (!is.null(fit$ystar)) res$ystar <- ystar
+  
+  if(is.null(par)){
+    return(res)
+  }
   
   if(par %in% names(res)){
     return(res[[par]])
