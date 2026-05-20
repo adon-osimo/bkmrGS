@@ -42,7 +42,7 @@ TracePlot <- function(fit, par, comp = 1, sel = NULL, main = "", xlab = "iterati
     }
     
     if(is.null(ylab)){
-      ylab = paste0(as.character(nm), " value")
+      ylab <- paste0(as.character(nm), " value")
     }
     
     main <- paste0(main, "\nTrace Plot for ", nm)

@@ -1,0 +1,687 @@
+---
+title: "Group Seperable BKMR Overview"
+author: "Adon Osimo"
+date: "2026-02-10"
+output:
+  pdf_document: default
+  html_document: default
+header-includes:
+  - \usepackage{xcolor}
+editor_options:
+  markdown:
+    wrap: 72
+---
+
+```{r, echo = FALSE}
+library(ggplot2)
+```
+
+# Introduction to bkmr and bkmrGS
+
+The latest version of the standard bkmr package is on CRAN and can be installed
+by
+
+`install.packages("bkmr")`
+
+The latest version of the bkmrGS package is on GitHub and can be
+downloaded and installed by
+
+`remotes::install_github("adon-osimo/bkmrGS")`
+
+Then the packages can be loaded by
+
+```{r}
+library(bkmr)
+library(bkmrGS)
+```
+
+This vignette introduces the `bkmr` and `bkmrGS` packages to implement
+the standard and group-separable BKMR model. The `bkmr` package was
+built by Jennifer Bobb and can be accessed
+[here](https://CRAN.R-project.org/package=bkmr). The `bkmrGS` package is
+built on top of the BKMR paper by Jennifer Bobb described in [this
+Biostatistics article](https://doi.org/10.1093/biostatistics/kxu058) and
+[this Environmental Health supplemental
+article](https://doi.org/10.1186/s12940-018-0413-y).
+
+Note that while this package is built off the `bkmr` package, it does
+not have all of the functionality of that package. For a standard BKMR
+analysis, please use the standard `bkmr` package. If you are using both
+the `bkmr` and `bkmrGS` packages in the same R session, make sure to
+specify the package names when calling functions. For example, you can
+call `bkmr::kmbayes` or `bkmrGS::kmbayes` to differentiate between the
+functions in the two packages. [At one point, once the two package are
+integrated, it would be nice not to have this line]
+
+## Standard bkmr
+
+Bayesian Kernel Machine Regression (BKMR) is a flexible framework for
+modeling the health effects of exposure mixtures. It is designed to
+estimate the joint effect of multiple exposures (Z) on an outcome (y),
+while accounting for covariates (X). The standard BKMR model is
+
+$$y_i = h(Z_i) + X_i^T\beta + \epsilon_i, \ \epsilon_i \sim N(0,\sigma^2)$$
+
+where $h(\cdot)$ is an unknown function modeled using a kernel. A common
+choice is the Gaussian kernel with $m \in (1,\dots, M)$ exposure
+variables,
+
+$$K(\mathbf{z_i},\mathbf{z_j}) = \exp\left\{-\sum^M_{m=1}r_m(z_{im}-z_{jm})^2\right\}$$
+
+Intuitively, the kernel function shrinks the estimated health effects of
+two individuals with similar exposure profiles toward each other.
+Standard BKMR assumes that this mixture-response function $h(\cdot)$ is
+the same for all individuals, and does not account for effect
+modification.
+
+## Group Separable BKMR
+
+The Group Separable BKMR framework extends classic BKMR by allowing us
+to explicitly model effect modification. For $i \in (1,\dots, G)$, let
+$w_i$ denote a categorical modifier indicating which group the
+observation belongs to. The model is
+
+$$y_i = h_{w_i}(\mathbf{z_i}) + X_i^T\beta + \epsilon_i$$
+
+Where each group $w$ has its own exposure-response function $h_w(\cdot)$
+
+This is achieved through a group Separable kernel of the form
+
+$$K^{gs}(\mathbf{z_i, z_j}, w_i, w_j, \mathbf{\tau^{gs}, r^{gs}}) =
+\begin{cases}
+\tau^{gs}_{w_i} \cdot \exp\Bigg[ - \sum_{m=1}^M {(z_{im} - z_{jm})^2}{r^{gs}_{m,g}} \Bigg], & \text{if } w_i = w_j, \\
+0, & \text{if } w_i \neq w_j,
+\end{cases}$$
+
+Under this formulation, observations only contribute to the kernel
+within the same group, allowing each group to have a distinct and
+flexible exposure-response surface.
+
+## When to use Group Seperable BKMR and benefits of doing so
+
+The classic BKMR model is appropriate when the exposure-response
+relationship is assumed to be the same across all individuals. In
+contrast, Groups Separable BKMR is useful when there is reason to
+believe that this relationship differs across groups defined by a
+categorical modifier $w$.
+
+Compared to fitting separate BKMR models within each group (i.e.,
+stratified analysis), Group Separable BKMR provides unified modeling.
+This allows Group Separable BKMR to offer a more interpretable structure
+by jointly estimating the group specific exposure-response functions
+$h_w(Z)$. Group Separable BKMR is the right tool for fitting
+exposure-response relationships across groups while maintaining
+interpretability.
+
+## Visualization of the Difference
+
+
+```{r warning=FALSE, include=FALSE}
+#make data for the plot
+#ex_data_plot <- data.frame(y = Liu_data$y, Log_Lead = Liu_data$Log_Leag, Log_Manganese = Liu_data$Log_Manganese, Log_Arsenic = Liu_data$Log_Arsenic, ex_data$X)
+data("Liu_data")
+str(Liu_data)
+y <- Liu_data$y
+X <- Liu_data$Age
+Z <- as.matrix(Liu_data[2:4])
+#fit bkmr::kmbayes and get a plotable object
+bkmr_model <- bkmr::kmbayes(y, Z, X, iter = 10, verbose = FALSE)
+bkmr_input <- bkmr::PredictorResponseUnivar(fit = bkmr_model)
+std_bkmr_plot <- ggplot(bkmr_input, aes(z, est, ymin = est - 1.96*se, ymax = est + 1.96*se)) + 
+    geom_smooth(stat = "identity") + 
+    facet_wrap(~ variable) +
+  ylab("h(z)")
+
+#fit bkmrGS::kmbayes and get a plotable object
+bkmrGS_model <- kmbayesWrapper(y ~ h(Log_Lead, Log_Manganese, Log_Arsenic, mod = Sex) + Age, 
+                          data = Liu_data,
+                          iter = 10, 
+                          verbose = FALSE) 
+bkmrgs_input <- PredictorResponseUnivar(fit = bkmrGS_model, 
+                                            method = "exact",
+                                            q.fixed = 0.5)
+
+bkmrGS_plot <- ggplot(bkmrgs_input, aes(z, est, ymin = est - 1.96*se, 
+                                   ymax = est + 1.96*se, color = modifier, fill = modifier, linetype = modifier)) + 
+  geom_smooth(stat = "identity") + 
+  geom_hline(yintercept=0)+
+  facet_wrap(vars(variable)) +
+  xlab("Exposure level (log transformed, centered/scaled)") +
+  ylab("Exposure-response function (h)") +
+  theme_classic() +
+  theme(legend.position = "bottom")+
+  labs(color="Child Sex", fill = "Child Sex", linetype = "Child Sex") +
+  scale_fill_manual(values=c("#E4A16C", "#789489"))+
+  scale_color_manual(values=c("#D9782D", "#1E4D2B"))
+```
+
+
+Here is a quick demonstration of the difference between standard BKMR and the group separable version of BKMR. In this example we know that the exposure response relationship differs by child sex. However standard BKMR ignores this relationship and assumes a common exposure response surface across all subjects. This first plot uses our example data (which we elaborate on later) and shows the results from improperly fitting it with standard `bkmr`.
+
+
+```{r, echo=FALSE}
+std_bkmr_plot
+```
+
+Below is the result of fitting
+`bkmrGS` 
+to that same data, allowing for the exposure response function to vary by child sex group. Later in this vignette, we discuss the code which generated these plots. 
+
+```{r, echo = FALSE}
+bkmrGS_plot
+```
+
+Clearly the standard BKMR fit misses certain trends across child sex by averaging across the two groups. Conversely, group separable BKMR is able to illustrate the difference in the exposure response relationship for males and females. 
+
+# Worked data example bkmrGS
+
+In this section, we will provide a walk through of a data analysis
+showcasing the usability of `bkmrGS`.
+
+## Table of Contents
+
+-   [Data Set and Fitting](#data-fitting)
+-   [Model Fitting](#model-fitting)
+-   [Model Checking](#model-checking)
+-   [Model Output](#model-output)
+-   [Exposure-Response Relationship](#exposure-response-relationships)
+    -   [Univariate exposure-response functions](#univariate)
+    -   [Group specific effects](#GSeffects)
+    -   [Between Group Differences](#differences)
+
+## Data Set and Fitting {#data-fitting}
+
+Using the example data set in the package, we will fit the model using
+the `kmbayes()` function [Subject to name changes]. First load the data
+set:
+
+```{r}
+data("Liu_data")
+```
+
+In this data from the Liu et al. 2021 paper set we have
+
+-   `y` is the response (neurodevelopment score, BSID-III)
+
+-   `Z` is a matrix of exposures (Log_Lead, Log_Manganese, and Log_Arsenic measured
+    in the fetus cumulatively during gestation)
+
+-   `X` is a matrix of covariates (the rest of the columns in our data)
+
+We used child sex (male/female) as a binary modifier of the effect of
+exposure on neurodevelopment. Included is a small snippet of the data
+frame
+
+```{r}
+head(Liu_data)
+```
+
+## Model Fitting {#model-fitting}
+
+Now fit the model with the `bkmrGS()`
+function. The following example uses 10 MCMC iterations, but it is
+important to use ample MCMC iterations. Typically, we would like to see at least 1,000 usable iterations, but this largely depends on your effective sample size and model convergence. To check model convergence, see section [INSERT SECTION HERE].
+Here, `bkmrGS()` takes the arguments
+
+-   `y`, the name of a column in your data frame that will be your response, note that it must be a column of a continuous variable
+
+-   `h(Z_1, Z_2, ... ,Z_k,mod = modifier_name)`, the names of
+    every exposure you want included in the model, along with the name
+    of the modifier column, note that if you don't include a modifier column or set `mod=NULL`, then the function will run standard BKMR
+
+-   `X_1 + X_2 +...+X_n`, the names of all covariates you would like
+    added to the model separated by plus signs
+
+-   `data`, the data frame which you are pulling all this from
+
+-   `modifier`, the the name of the column for modifier. This is default set to `NULL` and runs standard `bkmr`.
+
+-   `iter`, the number of iterations you want the MCMC sampler to run, which is defaulted to 1000.
+
+-   `burnin`, the number of burn in iterations you want removed from
+    your final sampling, which is defaulted to `iter/2`, which would be removing the first half of your samples
+
+-   `verbose`, `TRUE` or `FALSE` indicator for controlling the amount of live-time diagnostic which is outputted from the model, 
+
+-   `gs.tau`, `TRUE` or `FALSE` indicator for whether to use group-specific
+    $\tau$ parameters
+
+-   `gs.sig`, `TRUE` or `FALSE` indicator for whether to estimate separate
+    error variance terms for each group
+
+-   `est.h`, `TRUE` or `FALSE` indicator for whether to sample from the
+    posterior distribution of the subject-specific effects h_i within
+    the main sampler
+
+More information about `gs.tau`, `gs.sig`, `est.h` please check the help file. Other parameters (`id`, `starting.values`, `control.params`,
+`varsel`, `groups`, `knots`, `ztest` and `rmethod`) are reused from the
+standard `bkmr` package. Here we can see
+
+```{r}
+set.seed(111) #for consistency in demonstration
+fitkm <- kmbayesWrapper(y ~ h(Log_Lead, Log_Manganese, Log_Arsenic, mod = Sex) +
+                          Age + Gestation + Delivery + Birth_order +
+                          Education_parent1 + Education_parent2 + Smoking +
+                          HOME_emotional + HOME_avoid + HOME_careg + 
+                          HOME_env + HOME_play + HOME_stim + 
+                          Energy, #entire model in a GAM style
+                          data = Liu_data, #data frame
+                          iter = 10, #MCMC iterations
+                          verbose = FALSE) #controls output during fitting
+
+```
+
+We can quickly look at the object by printing it and using the
+`summary()` function:
+
+```{r}
+summary(object = fitkm, #specify the model
+        digits = 2 ) #specify the number of digits in output
+```
+
+In our example output, we caused several warnings to be tripped based off our MCMC diagnostics. Acceptance rate warnings are displayed when the MH acceptance rate is either below 20% or above 50%, as both situations indicate poor mixing and possible convergence issues. We also trip a warning for having our effective sample size is low (ESS < 100), very low (ESS < 30), or unavailable. These all suggest potential convergence problems. Finally there are two additional warnings related to the number of retained posterior samples and burn-in. A warning will be show if we have fewer than 1000 posterior draws, since small posterior samples may lead to unstable estimates. The other warning is indicated if the burn-in period is less than 10% of the total iterations, meaning it might not have reached it's stationary distribution yet. 
+
+Ideally I want to add a Try to each Warning, that way the user can try to do something about each issue. Just not sure about the wording yet. 
+
+## Model Checking {#model-checking}
+
+Next, check the convergence of model parameters with the
+`TracePlot()` 
+function. This function asks you to specify the parameter with the
+`par` 
+argument. These trace plots should exhibits rapid up and down variation with no
+long-term trends or drifts. This indicates that your estimates have converged. Long-term trends or drifts
+in the plot indicate slower convergence, poor convergence, or no convergence at all. See [insert section
+here for where to go] for more details and trouble shooting.
+
+```{r}
+par(mfrow = c(2, 2))
+TracePlot(fitkm, par = "beta")
+TracePlot(fitkm, par = "sigsq.eps")
+TracePlot(fitkm, par = "lambda")
+TracePlot(fitkm, par = "r", comp = 1)
+par(mfrow = c(1, 1))
+```
+
+Then, we should check the acceptance rates of $r$ and $\lambda$, to
+ensure they are being sampled properly.
+In BKMR, the
+$r$
+parameters correspond to the exposures passed in the
+$h()$
+call, and therefore control the relative importance of each exposure's contribution. The
+$\lambda$ 
+parameter controls the overall flexibility of the exposure response surface. In this code chunk, we are pulling the saved decision (accept as 1 or reject as 0) from each iteration our model. Then we are taking the column means which give the empirical acceptance rates for each parameter 
+
+
+```{r}
+colMeans(fitkm$acc.r)
+colMeans(fitkm$acc.lambda)
+```
+
+Acceptance rates vary from
+problem to problem, but should not be close to either 0 nor 1. A common
+rule of thumb is that the acceptance rates for both $r$ and $\lambda$
+should ideally be between 0.2 and 0.5.
+Consider changing hyperparameters if acceptance rates are too high or
+too low. See <https://jenfb.github.io/bkmr/overview.html> for more
+details.
+
+## Model Output {#model-output}
+
+After reviewing our model to ensure proper mixing, and checking it's
+acceptance rates, we can move on to reviewing the model output. Here if
+we call the `ExtractEsts` function it will give us estimates for each of
+our model parameters as well as quantiles for those estimates. Similarly
+we can use `ExtractSamps` to get and view all the samples our MCMC
+algorithm decided to keep at each point
+
+```{r}
+GetEsts(fitkm, par = "beta", digits = 2)
+GetEsts(fitkm, par = "sigsq.eps", digits = 2)
+GetEsts(fitkm, par = "lambda", digits = 2)
+GetEsts(fitkm, par = "r", digits = 2)
+```
+
+Add information about seeing warnings and what to do about them, once I
+figure out which warnings and what those warnings will say in the model
+output section
+
+## Exposure-Response Relationship {#exposure-response-relationships}
+
+### Univariate exposure-response functions {#univariate}
+
+To plot the estimated exposure-response function for each group, use the
+`PredictorResponseUnivar()` function. This function takes a fit object
+from `kmbayes` (`fit`), estimation method (`"exact"` or `"fullpost"`), and a reference quantile (`"q.fixed"`). Here `q.fixed` is telling us the quantile value at which the exposures not being varied are being held constant. This provides a reference point when estimating the effect of changes in the exposure mixture. 
+It returns the estimated exposure-response function value (`est`) and
+standard error (`se`) across a grid of exposure values (`z`) for each
+exposure (`variable`) for each modifier level (`modifier`). This is
+particularly useful when we want to visualize the relationship between
+our exposure and responses for each individual group.
+
+```{r}
+pred.resp.univar <- PredictorResponseUnivar(fit = fitkm, 
+                                            method = "exact",
+                                            q.fixed = 0.5)
+#this does return all three exposures, but I didn't want to use up a lot of lines in the pdf
+#I understand that we want the user to see that this returns all of the exposure variables, but I couldn't think of a concice way to show that 
+head(pred.resp.univar)
+```
+
+Then we can plot the output from `PredictorResponseUnivar()` to
+visualize the differences in exposure-response functions across our
+modifier. Each panel shows the estimated change in the outcome
+associated with varying a single exposure while holding all other
+exposures fixed at their median levels. Separate curves are shown for
+each modifier group.
+
+```{r}
+ggplot(pred.resp.univar, aes(z, est, ymin = est - 1.96*se, 
+                                   ymax = est + 1.96*se, color = modifier, fill = modifier, linetype = modifier)) + 
+  geom_smooth(stat = "identity") + 
+  geom_hline(yintercept=0)+
+  facet_wrap(vars(variable)) +
+  xlab("Exposure level (log transformed, centered/scaled)") +
+  ylab("Exposure-response function (h)") +
+  theme_classic() +
+  theme(legend.position = "bottom")+
+  labs(color="Child Sex", fill = "Child Sex", linetype = "Child Sex") +
+  scale_fill_manual(values=c("#E4A16C", "#789489"))+
+  scale_color_manual(values=c("#D9782D", "#1E4D2B"))
+```
+
+Additional notes and comments:
+
+ExtractEst and Extract Samps make sense
+
+ComputePostMeanHnew? Not really?
+
+Summarize model output PredictorResponseBivarLevels -
+PredictorResponseBivarPair - PredictorRespopnseUnivar
+
+These only work on specific groups?
+
+Now that I have deleted the prediction section I just framed it as
+Understanding the group specific effects and between group differences
+
+### Group specific effects {#GSeffects}
+
+SECTION FOR INTRODUCTION? 
+
+One of the primary advantages of the group-separable BKMR framework is
+the ability to estimate group-specific mixture effects. Across each
+level of the modifier, we can evaluate how the overall mixture and
+individual exposures impact the outcome. In this section, we consider two types of group-specific effects the overall mixture effect and the single exposure effects. The former evaluates the change in outcome when all exposures are increase simultaneously across qunatiles. The ladder isolates the association between an individual exposure and the outcome while holding the remaining exposures fixed. These summaries provide insight into the joint behavior of the mixture and the individual exposure contributions.
+
+
+SECTION FOR JOINT RISK SUMMARIES?
+
+We begin by estimating the
+overall effect of the exposure mixture for a fixed modifier level. The
+`OverallRiskSummaries()` function computes the change in the outcome
+when all exposures are jointly increased to specified quantiles,
+relative to a fixed reference level. This function takes an argument
+`fit` which is an object from `kmbayesBlocked`, the argument `qs`
+specifies the quantiles at which the mixture is evaluated, while
+`q.fixed` defines the reference quantile. The argument `m.fixed`
+indicates the modifier level, so the resulting estimates correspond to
+the group-specific function $h_w(Z)$
+
+```{r}
+total_mix_gs <- OverallRiskSummaries(fitkm,
+                                     qs = c(0.25, 0.5, 0.75),
+                                     q.fixed = 0.5,
+                                     m.fixed = "male",
+                                     method = "exact")
+print(total_mix_gs)
+```
+
+One way to interpret this output that the
+`est` 
+represent the estimated change in outcome when the exposure mixture, for the fixed modifier group, is jointly increased from the 50th quantile to the specified quantile. If we isolate the 25th quantile for example, we would say that among males, the estimated difference in the response when comparing the exposure mixture at the 25th percentile versus the 50th percentile is 0.53 units. A positive estimate here indicates that the outcome is higher at the flexible quantile compared to the fixed quantile. A negative estimate would indicate the opposite, that the outcome is higher at the fixed quantile compared to the flexible quantile.
+
+To compare the overall mixture effects across groups, we repeat this
+analysis for each modifier level and combine the results into a single
+data frame for visualization.
+
+```{r}
+total_mix_gs$modifier <- rep("male", nrow(total_mix_gs))
+total_mix_gs_tmp <- OverallRiskSummaries(fitkm,
+                                         qs = c(0.25, 0.5, 0.75),
+                                         q.fixed = 0.5,
+                                         m.fixed = "female",
+                                         sel = 5:10,
+                                         method = "exact")
+total_mix_gs_tmp$modifier <- rep("female", nrow(total_mix_gs_tmp))
+total_mix_gs_df <- rbind(total_mix_gs, total_mix_gs_tmp)
+```
+
+The plot below shows how the estimated effect of increasing the entire
+mixture varies by group. Differences between the curves indicate that
+the overall mixture effect is not constant across levels of the
+modifier, providing evidence of effect modification at the mixture
+level.
+
+```{r}
+ggplot(total_mix_gs_df, 
+       aes(x=quantile, y = est, ymin = est - 1.96*sd, 
+           ymax = est + 1.96*sd, color = modifier, 
+           shape = modifier))+
+  geom_hline(yintercept=0)+
+  geom_pointrange(position = position_dodge(width = 0.05), size=0.5)+
+  theme_bw()+
+  theme(legend.position = "bottom",
+        axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))+
+  xlab("Quantile")+
+  ylab("Difference in BSID-III per \n IQR change in exposure") +
+  labs(color="Child Sex", shape = "Child Sex") +
+  scale_color_manual(values=c("#D9782D", "#1E4D2B"))
+
+```
+
+NEW SECTION TITLE? 
+
+Next, we examine single exposure effects within the mixture using the
+`SingVarRiskSummaries()` function. This function estimates the change in
+the outcome associated with increasing one exposure from a lower to a
+higher quantile, while holding the remaining exposures fixed. This
+function takes an argument `fit` which is an object from
+`kmbayesBlocked`, the argument `qs.diff` specifies the lower and upper
+quantiles used for this comparison, and `q.fixed` defines the quantile
+at which the remaining exposures are held fixed. The argument `m.fixed`
+indicates the modifier level, so the resulting estimates correspond to
+the group specific exposure-response function $h_w(Z)$
+
+```{r}
+
+single_exp_gs <- SingVarRiskSummaries(fitkm,
+                                       qs.diff = c(0.25, 0.75),
+                                       q.fixed = 0.5,
+                                       m.fixed = "male",
+                                       method = "exact")
+print(single_exp_gs)
+```
+
+The printed estimates here represent the estimated change in the outcome associated with increase a single exposure. Specifically it represents increasing the isolated exposure from the lower to upper quantile specified while holding all other exposures fixed.
+Specifically in this example, among males when increasing
+`Log_Lead` 
+from the 25th percentile to the 75th percentile is associated with a 0.262 unit change in the outcome while holding the other exposures constant at their 50th percentile.
+
+To compare effects across groups, we repeat this analysis for each
+modifier level and combine the results into a single data frame for
+visualization.
+
+```{r}
+single_exp_gs$modifier <- rep("male",nrow(single_exp_gs))
+
+single_exp_gs_tmp <- SingVarRiskSummaries(fitkm,
+                                            qs.diff = c(0.25, 0.75),
+                                            q.fixed = 0.5,
+                                            m.fixed = "female",
+                                            sel = 5:10,
+                                            method = "exact")
+single_exp_gs_tmp$modifier <- rep("female",nrow(single_exp_gs_tmp))
+single_exp_gs_df <- rbind(single_exp_gs, single_exp_gs_tmp)
+```
+
+The following plot displays the estimated change in the outcome for an
+interquartile range (IQR) increase in each exposure, stratified by
+modifier group. Differences between groups reflect effect modification
+in the exposure-response relationship.
+
+```{r}
+ggplot(single_exp_gs_df, 
+       aes(x=q.fixed, y = est, ymin = est - 1.96*sd, 
+           ymax = est + 1.96*sd, color = modifier, 
+           shape = modifier))+
+  geom_hline(yintercept=0)+
+  geom_pointrange(position = position_dodge(width = 0.5), size=0.5)+
+  facet_wrap(vars(variable))+
+  theme_bw()+
+  theme(legend.position = "bottom",
+        axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))+
+  xlab("Quantile")+
+  ylab("Difference in BSID-III per \n IQR change in exposure") +
+  labs(color="Child sex", shape = "Child sex") +
+  scale_color_manual(values=c("#D9782D", "#1E4D2B"))
+
+```
+
+### Between Group Differences {#differences}
+
+In addition to estimating group-specific effects, Group-Separable BKMR
+allows for direct comparison of exposure effects between groups. This
+provides a formal way to assess effect modification, by quantifying how
+the exposure-response relationship differs across the modifier.
+
+We estimate the difference in the overall mixture effect between groups
+using the `OverallIntSummaries()` function. This function computes the
+difference in the estimated mixture effect between two modifier levels
+at specified quantiles of the exposure distribution. This function takes
+an argument `fit` which is an object from `kmbayesBlocked`, the argument
+`mod.diff = c("male", "female")` indicates that the estimated
+differences correspond to female minus male, \textcolor{red}{the argument} `sel = 5:10`
+specifies which posterior samples from the fitted model are used when
+computing the summaries. Positive values therefore
+indicate a stronger association in females, while negative values
+indicate a stronger association in males. The argument `qs` specifies
+the quantiles at which the mixture is evaluated, while `q.fixed` defines
+the reference quantile.
+
+```{r}
+total_mix_btwn <- OverallIntSummaries(fitkm,
+                                             qs = c(0.25, 0.5, 0.75),
+                                             q.fixed = 0.5,
+                                             mod.diff = c("male", "female"), #female - male
+                                             sel = 5:10,
+                                             method = "exact")
+print(total_mix_btwn)
+```
+
+This output could be interpreted as the estimated difference in the overall mixture effect between females and males when simultaneously changing all exposures from the reference quantile to the specified quantile. For example, we could say that for the 75th percentile, that the estimated effect of increase the overall exposure mixture is 0.517 units larger in females than in males at that quantile
+
+The following plot displays the difference in overall mixture effects
+between groups across quantiles. Confidence intervals that exclude zero
+provide evidence of effect modification at the mixture level.
+
+```{r}
+ggplot(total_mix_btwn, aes(x=quantile, y = est, ymin = est - 1.96*sd, 
+                                   ymax = est + 1.96*sd))+
+  geom_hline(yintercept=0)+
+  geom_pointrange(size=0.5)+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))+
+  xlab("Quantile")+
+  ylab("Difference in association \n (per IQR change) with BSID-III \n between girls and boys")
+```
+
+To estimate differences in single-exposure effects between groups, we
+use the `SingVarIntSummaries()` function. This function evaluates how
+the effect of changing one exposure differs across modifier levels,
+while holding all other exposures fixed. This function takes an argument
+`fit` which is an object from `kmbayesBlocked`, the argument `qs.diff` a
+vector of two quantiles for computing the difference `qs.diff`, the
+argument `q.fixed` which is a single value repeated twice in a vector at
+which to fix the other exposure, and `m.fixed` which is the modifier
+level. The following example computes the estimated difference in effect
+between boys and girls of an IQR change in each exposure when the others
+are fixed at the median.
+
+```{r}
+single_exp_btwn <- SingVarIntSummaries(fitkm,
+                                       qs.diff = c(0.25, 0.75),
+                                       qs.fixed = c(0.5,0.5),
+                                       mod.diff = c("male", "female"), #female - male
+                                       method = "exact")
+print(single_exp_btwn)
+```
+
+In this example, the estimate for
+`Log_Lead` 
+is -0.406, which suggests that the estimated effect of increase
+`Log_Lead` 
+from the 25th percentile to the 75th percentile is 0.406 units smaller in females compared to males while holding the other exposures fixed at their 50th percentiles. 
+
+Similarly, we can visualize differences in single-exposure effects
+between groups. Each panel corresponds to an exposure, and the plotted
+estimates represent the difference in effect (female minus male) for an
+IQR increase in that exposure.
+
+```{r}
+ggplot(single_exp_btwn, aes(x="", y = est, ymin = est - 1.96*sd, 
+                                   ymax = est + 1.96*sd))+
+  geom_hline(yintercept=0)+
+  geom_pointrange(size=0.5)+
+  facet_wrap(vars(variable))+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))+
+  xlab("")+
+  ylab("Difference in association \n (per IQR change) with BSID-III \n between girls and boys")
+```
+
+# User implimented changes
+
+## Changing the tuning parameters?
+
+## Changing the priors
+
+Our package allows users to modify prior distributions for the model
+parameters. Prior specification can be updated through the
+`control.params` argument. Priors can be explored using the
+`InvestigatePriors()` function, which allows users to visualize the
+implied distributions under different hyperparameter choices. After
+specifying alternative priors, the `PlotPriorFits()` function can be
+used to visualize how these choices influence the implied
+exposure-response relationships.
+
+How to change priors - InvestigatePriors - PlotPriorFits
+
+## Changing the methods
+
+Several functions in `bkmrGS` 
+include a
+`method` 
+argument that controls how risk summaries are computed. Different methods may vary in computational cost and the degree of approximation used. Specifically, all of our exposure-response variables have the
+`method` argument, which can be `approx`, `exact`, or `fullpost`. The default for this is `method = approx` 
+which uses a Gaussian process approximation based on posterior mean and variance estimates. This reduces the computational burden slightly and scales better when many prediction points. If you changed this to
+`method = exact` 
+we see that the function is evaluated using a full Gaussian process. It also uses the exact covariance structure at the posterior mean parameter estimates. This is more precise at the cost of being more computationally expensive. Between
+`exact` and `approx` the only difference is that `approx` uses an approximation of the Gaussian process and the `exact` uses the actual Gaussian process. Finally the `method = fullpost` is only available for `PredictorResponseUnivar`. 
+This computes the predictions separately at each MCMC iteration, and then summarizes these predictions across posterior samples. 
+
+
+We also have a `kernel.method` call in the `kmbayesWrapper` function which allows the user to run either standard BKMR if `kernel.method = "one"` or group separable BKMR if `kernel.method = "two"`. Now that I write this out, I am not sure that I really need to include this in the final function, as my wrapper allows the user to input $h()$ with no modifier and run standard BKMR. I will look into this more. 
+
+For example, in
+functions such as `OverallRiskSummaries()` and `SingVarRiskSummaries()`,
+the argument `method = "exact"` computes risk differences directly using
+posterior samples of the exposure-response function. This approach is
+more accurate but can be computationally intensive. Alternative methods
+(e.g., `method = "approx"`) may use approximations to reduce computation
+time. These approaches can be useful for large data sets or when rapid
+exploratory analysis is desired, but may introduce additional
+variability or bias.
+
+Explicitly defining the difference between `method = "one"` and
+`method = "two"` and such.

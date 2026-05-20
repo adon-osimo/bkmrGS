@@ -12,7 +12,7 @@ makeVcompsBlocked <- function(r, lambda, Z, data.comps, modifier = NULL) {
   #Check if data.comps is null
   if (is.null(data.comps$knots)) {
     #Check if we have a modifier
-    #if so, use the sped up version levering block structure
+    #if so, use the sped up version levreging block structure
     if(!is.null(modifier)){
       block_ids <- get_block_ids(modifier, nrow(Z))
       G <- length(block_ids)
@@ -181,7 +181,7 @@ lambda_scalar_blocked <- function(modifier, lambda, data.comps, block_ids) {
 #' ## Typically should use a large number of iterations for inference
 #' set.seed(111)
 #' fitkm <- kmbayesBlocked(y = y, Z = Z, modifier = "Sex", X = X, iter = 10, verbose = FALSE) 
-kmbayesBlocked <- function(y, Z, X = NULL, 
+kmbayesBlocked <- function(y, Z, X, 
                     modifier = NULL, #added by DD, 
                     iter = 1000, family = "gaussian", id = NULL, verbose = TRUE, 
                     starting.values = NULL, control.params = NULL, varsel = FALSE, 
@@ -189,8 +189,8 @@ kmbayesBlocked <- function(y, Z, X = NULL,
                     est.h = FALSE, kernel.method = "two",
                     gs.tau = TRUE, gs.sig = FALSE, burnin = iter/2) {
   #browser()
-  missingX <- is.null(X)
-  if (missingX) X <- matrix(0, length(y), 1)
+  missingX <- ncol(X) == 1
+  if (missingX) X <- cbind(matrix(0, length(X[,1]), 1), X)
   hier_varsel <- !is.null(groups)
   
   #I don't think this line is necessary as if modifier is null
@@ -245,7 +245,7 @@ kmbayesBlocked <- function(y, Z, X = NULL,
     X <- as.matrix(model.matrix(~., data = X_full)[,-1])
   }
   else{
-    X <- as.matrix(model.matrix(~., data = X_full)[,-1])
+    X <- as.matrix(model.matrix(~., data = X)[,-1])
   }
   
   #if(!is.null(modifier)){
@@ -834,6 +834,7 @@ print.bkmrfit <- function(x, digits = 5, ...) {
 summary.bkmrfit <- function(object, q = c(0.025, 0.975), digits = 5, show_ests = TRUE, show_MH = TRUE, ...) {
   x <- object
   elapsed_time <- difftime(x$time2, x$time1)
+  warns <- character(0)
   
   print(x, digits = digits)  
   cat("Running time: ", round(elapsed_time, digits), attr(elapsed_time, "units"), "\n")
@@ -841,6 +842,7 @@ summary.bkmrfit <- function(object, q = c(0.025, 0.975), digits = 5, show_ests =
   
   if (show_MH) {
     cat("Acceptance rates for Metropolis-Hastings algorithm:\n")
+    #add warnings here as well for low acceptance rates? 
     accep_rates <- data.frame()
     ## lambda
     nm <- "lambda"
@@ -872,10 +874,38 @@ summary.bkmrfit <- function(object, q = c(0.025, 0.975), digits = 5, show_ests =
       }
     }
     print(accep_rates)
+    
+    #warnings for convergence
+    low_acc <- accep_rates$param[accep_rates$rate < 0.20]
+    high_acc <- accep_rates$param[accep_rates$rate > 0.50]
+    
+    if(length(low_acc) > 0){
+      warns <- c(
+        warns,
+        paste(
+          "Low Metropolis Hastings acceptance rates (<20%):",
+          paste(low_acc, collapse = ", "),
+          "- chain mixes poorly. Try ?"
+        )
+      )
+    }
+    
+    if(length(high_acc) > 0){
+      warns <- c(
+        warns,
+        paste(
+          "High Metropolis Hastings acceptance rates (>50%):",
+          paste(high_acc, collapse = ", "),
+          "- proposals may be too small. Try ?"
+        )
+      )
+    }
+    
   }
   if (show_ests) {
     sel <- with(x, seq(burnin + 1, iter))
     cat("\nParameter estimates (based on iterations ", min(sel), "-", max(sel), "):\n", sep = "")
+    #flag here? for checking estimates on the summary?
     ests <- ExtractEsts(x, q = q, sel = sel)
     if (!is.null(ests$h)) {
       ests$h <- ests$h[c(1,2,nrow(ests$h)), ]
@@ -899,6 +929,81 @@ summary.bkmrfit <- function(object, q = c(0.025, 0.975), digits = 5, show_ests =
       pips[, -1] <- round(pips[, -1], digits)
       print(pips)
     }
+    
+    #warnings for ess
+    low_ess <- summ$param[
+      !is.na(summ$ess) &
+        summ$ess < 100 &
+        summ$ess >= 30
+    ]
+    
+    very_low_ess <- summ$param[
+      !is.na(summ$ess) &
+        summ$ess < 30
+    ]
+    
+    null_ess <- summ$param[
+      is.na(summ$ess)
+    ]
+    
   }
-  return()
+    
+    if(length(low_ess) > 0){
+      warns <- c(
+        warns,
+        paste(
+            "Low effective sample size (<100):",
+            paste(low_ess, collapse = ", "),
+            "- posterior estimates may be unstable. Try?"
+        )
+      )
+    }
+
+    if (length(very_low_ess) > 0) {
+      warns <- c(
+        warns,
+        paste(
+          "Very low effective sample size (<30):",
+          paste(very_low_ess, collapse = ", "),
+          "- convergence is questionable. Try ?"
+        )
+      )
+    }
+    
+    if (length(null_ess) > 0) {
+      warns <- c(
+        warns,
+        paste(
+          "Effective sample size is NULL:",
+          paste(null_ess, collapse = ", "),
+          "- convergence has not been attained. Try ?"
+        )
+      )
+    }
+    
+  #warnings section
+  n_post <- x$iter - x$burnin
+  if (n_post < 1000) {
+    warns <- c(
+      warns,
+      paste(
+        "Only", n_post,
+        "posterior samples retained; consider running longer chains to achieve a posterior draw size of at least 1000."
+      )
+    )
+  }
+  
+  if (x$burnin < 0.1 * x$iter) {
+    warns <- c(
+      warns,
+      "Burn-in is less than 10% of iterations; warmup may be insufficient."
+    )
+  }
+  
+  if(length(warns) > 0){
+    cat("\nConvergence warnings:\n")
+    for (w in warns){
+      warning(w, call. = FALSE)
+    }
+  }
 }

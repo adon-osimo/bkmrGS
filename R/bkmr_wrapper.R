@@ -1,4 +1,4 @@
-#wrapper for kmbayes
+#' wrapper for kmbayes, probably rename to just bkmrGS or bkmr
 #' Fit Bayesian kernel machine regression
 #'
 #' Fits the Bayesian kernel machine regression (BKMR) model with group-separable kernel using Markov chain Monte Carlo (MCMC) methods.
@@ -34,19 +34,19 @@
 #' @import utils
 #' 
 #' @examples
-#' ## First generate data set
-#' y <- ex_data$y
-#' Z <- ex_data$Z
-#' modifier <- ex_data$X$Sex
-#' X_full <- ex_data$X[,-2] #remove Sex from the covariate matrix because it is the modifier
-#' #create design matrix to account for factor variables, remove the intercept column
-#' X <- model.matrix(~., data=X_full)[,-1] 
-#' 
-#' ## Fit model 
-#' ## Using only 10 iterations to make example run quickly
-#' ## Typically should use a large number of iterations for inference
-#' set.seed(111)
-#' fitkm <- kmbayes(y = y, Z = Z, modifier = modifier, X = X, iter = 10, verbose = FALSE) 
+#' ## Call the entire model and run it's summary
+#' set.seed(111) 
+#' fitkm <- kmbayesWrapper(y ~ h(Log_Lead, Log_Manganese, Log_Arsenic, mod = Sex) +
+#'                           Age + Gestation + Delivery + Birth_order +
+#'                           Education_parent1 + Education_parent2 + Smoking +
+#'                           HOME_emotional + HOME_avoid + HOME_careg + 
+#'                           HOME_env + HOME_play + HOME_stim + 
+#'                           Energy,
+#'                         data = Liu_data, 
+#'                         iter = 10, 
+#'                         verbose = FALSE) 
+#' summary(fitkm)
+
 kmbayesWrapper <- function(formula, data,
                            iter = 1000, family = "gaussian", id = NULL, verbose = TRUE, 
                            starting.values = NULL, control.params = NULL, varsel = FALSE, 
@@ -75,11 +75,11 @@ kmbayesWrapper <- function(formula, data,
   
   #check response
   if(length(response) != 1){
-    stop("Response needs to be only one column")
+    stop("Response needs to be exactly one column from the data")
   }
   
   if(!(response %in% names(data))){
-    stop("Response " + as.character(mod) + " is not in the data frame")
+    stop(paste0("Response '", response, "' not found in data"))
   }
   
   # Extract h()
@@ -87,7 +87,7 @@ kmbayesWrapper <- function(formula, data,
   
   #check h()
   if (length(h_term) > 1) {
-    stop("Exactly one h() term required.")
+    stop("Exactly one h() term needs to be declared.")
   }
   
   if (length(h_term) < 1){
@@ -97,6 +97,7 @@ kmbayesWrapper <- function(formula, data,
   #parse h()  
   h_call <- str2lang(h_term)
   args <- as.list(h_call)[-1]
+  arg_names <- c()
   
   #if arg_names is not null, we have a modifier
   if(!is.null(names(args))){
@@ -126,12 +127,17 @@ kmbayesWrapper <- function(formula, data,
   }
   
   #separate mod/modifier
-  mod_name <- "" 
+  mod_name <- ""
   if("mod" %in% arg_names){
     mod_name <- deparse(args[["mod"]])
   } else if ("modifier" %in% arg_names){
     mod_name <- deparse(args[["modifier"]])
-  }else mod_name <- NULL
+  } else {mod_name <- NULL}
+  
+  if(!is.null(mod_name) && mod_name == "NULL"){
+    mod_name <- NULL
+  }
+  
   
   #check modifier 
   if(length(mod_name) > 1){
@@ -148,9 +154,10 @@ kmbayesWrapper <- function(formula, data,
   X_terms <- term_labels[!grepl("^h\\(", term_labels)]
   
   #check X
-  if (length(X_terms) == 0) {
-    stop("No covaraites supplied inside h().")
-  }
+  #X can be null, duh
+  #if (length(X_terms) == 0) {
+  #  stop("No covaraites supplied inside X")
+  #}
   
   missing_X <- setdiff(X_terms, names(data))
   

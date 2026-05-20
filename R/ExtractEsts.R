@@ -7,7 +7,7 @@
 SummarySamps <- function(s, q = c(0.025, 0.25, 0.5, 0.75, 0.975)) {
     qs <- quantile(s, q)
     names(qs) <- paste0("q_", 100*q)
-    summ <- c(mean = mean(s), sd = sd(s), qs)
+    summ <- c(mean = mean(s), sd = sd(s), qs, ess = effective_sample_size(s))
     summ <- matrix(summ, nrow = 1, dimnames = list(NULL, names(summ)))
 }
 
@@ -127,7 +127,7 @@ ExtractEsts <- function(fit, q = c(0.025, 0.25, 0.5, 0.75, 0.975), sel = NULL) {
 #'
 #' Extract samples of each parameter from the BKMR fit
 #'
-#' @inheritParams ExtractEsts
+#' @inheritParams ExtractEsts2
 #'
 #' @export
 #' @return a list where each component contains the posterior samples of one of the parameters (or vector of parameters) being estimated
@@ -166,6 +166,7 @@ ExtractSamps <- function(fit, sel = NULL) {
   }
   
     if (!is.null(ncol(beta))) colnames(beta) <- paste0("beta", 1:ncol(beta))
+    if (!is.null(ncol(lambda))) colnames(lambda) <- paste0("lambda", 1:ncol(lambda))
     colnames(r) <- paste0("r", 1:ncol(r))
     colnames(h) <- paste0("h", 1:ncol(h))
     if (!is.null(fit$hnew)) colnames(hnew) <- paste0("hnew", 1:ncol(hnew))
@@ -210,120 +211,128 @@ ExtractSamps <- function(fit, sel = NULL) {
 #' names(ests)
 #' ests$beta
 
-ExtractEsts2 <- function(fit, par, q = c(0.025, 0.25, 0.5, 0.75, 0.975), sel = NULL) {
-  if(is.null(par)){
-    stop("Need to supply one parameter")
-  }
-  
-  if(length(par) != 1){
+ExtractEsts2 <- function(fit, par = NULL, q = c(0.025, 0.25, 0.5, 0.75, 0.975), sel = NULL, digits = 5) {
+  if(length(par) > 1){
     stop("par must be exactly one parameter")
   }
   
-  if(par %in% c("beta", "sigsq.eps", "r", "lambda", "h", "hnew", "ystar")){
+  if(is.null(par) || par %in% c("beta", "sigsq.eps", "r", "lambda", "h", "hnew", "ystar") ){
     if (inherits(fit, "bkmrfit")) {
       if (is.null(sel)) {
         sel <- with(fit, seq(burnin + 1, iter))
       }
+      sigsq.eps <- round(SummarySamps(fit$sigsq.eps[sel], q = q), digits)
+      rownames(sigsq.eps) <- "sigsq.eps"
+      
+      r <- round(t(apply(fit$r[sel, , drop = FALSE], 2, SummarySamps, q = q)), digits)
+      rownames(r) <- paste0("r", 1:nrow(r))
+      
+      beta <- round(t(apply(fit$beta[sel, , drop = FALSE], 2, SummarySamps, q = q)), digits)
+      
+      lambda <- round(t(apply(fit$lambda[sel, ,drop = FALSE], 2, SummarySamps, q = q)), digits)
+      if (nrow(lambda) > 1) {
+        rownames(lambda) <- paste0("lambda", 1:nrow(lambda))
+      } else {
+        rownames(lambda) <- "lambda"
+      }
+      
+      if (fit$est.h) {
+        h <- round(t(apply(fit$h.hat[sel, ], 2, SummarySamps, q = q)), digits)
+        rownames(h) <- paste0("h", 1:nrow(h))
+      }
+      
+      if (!is.null(fit$hnew)) {
+        hnew <- round(t(apply(fit$hnew[sel, ], 2, SummarySamps, q = q)), digits)
+        rownames(hnew) <- paste0("hnew", 1:nrow(hnew))
+      }
+      
+      if (!is.null(fit$ystar)) {
+        ystar <- round(t(apply(fit$ystar[sel, ], 2, SummarySamps, q = q)), digits)
+        rownames(ystar) <- paste0("ystar", 1:nrow(ystar))
+      }
+    }
+    
+    if (nrow(beta) > 1) {
+      rownames(beta) <- paste0("beta", 1:nrow(beta))
+    } else {
+      rownames(beta) <- "beta"
+    }
+    
+    colnames(beta) <- colnames(sigsq.eps)
+    colnames(r) <- colnames(sigsq.eps)
+    colnames(lambda) <- colnames(sigsq.eps)
+    if (fit$est.h) {
+      colnames(h) <- colnames(sigsq.eps)
+    }
+    if (!is.null(fit$hnew)) {
+      colnames(hnew) <- colnames(sigsq.eps)
+    }
+    if (!is.null(fit$ystar)) {
+      colnames(ystar) <- colnames(sigsq.eps)
+    }
+    
+    ret <- list(sigsq.eps = data.frame(sigsq.eps), beta = beta, lambda = lambda, r = r)
+    if (fit$est.h) ret$h <- h
+    if (!is.null(fit$hnew)) ret$hnew <- hnew
+    if (!is.null(fit$ystar)) ret$ystar <- ystar
+    if(!is.null(par)){
       
       #return beta estimates if it is beta
       if(par == "beta"){
-        beta <- t(apply(fit$beta[sel, , drop = FALSE], 2, SummarySamps, q = q))
-        
-        if (nrow(beta) > 1) {
-          rownames(beta) <- paste0("beta", 1:nrow(beta))
-        } else {
-          rownames(beta) <- "beta"
-        }
-        
-        names <- SummarySamps(fit$beta[sel, , drop = FALSE], q = q)
-        
-        colnames(beta) <- colnames(names)
-        
-        effective_sample_size <- apply(fit$beta[sel, , drop = FALSE], 2, effective_sample_size)
-        return(cbind(beta, effective_sample_size))
+        ret <- ret$beta
       }
-      
-      #return sigsq.eps estimates if it is sigsq.eps
+        
+        #return sigsq.eps estimates if it is sigsq.eps
       if(par == "sigsq.eps"){
-        sigsq.eps <- SummarySamps(fit$sigsq.eps[sel], q = q)
-        rownames(sigsq.eps) <- "sigsq.eps"
-        
-        #effective_sample_size <- apply(fit$sigsq.eps[sel,], 2, effective_sample_size)
-        return(cbind(sigsq.eps, effective_sample_size = effective_sample_size(fit$sigsq.eps[sel])))
+        ret <- ret$sigsq.eps
+  
       }
-      
-      #return r estimates if it is r
+        
+        #return r estimates if it is r
       if(par == "r"){
-        r <- t(apply(fit$r[sel, , drop = FALSE], 2, SummarySamps, q = q))
-        rownames(r) <- paste0("r", 1:nrow(r))
-        
-        colnames(r) <- colnames(SummarySamps(fit$r[sel], q= q))
-        
-        effective_sample_size <- apply(fit$r[sel, , drop = FALSE], 2, effective_sample_size)
-        return(cbind(r, effective_sample_size))
-        
+        ret <- ret$r
       }
-      
-      #return lambda estimates if it is lambda
+        
+        #return lambda estimates if it is lambda
       if(par == "lambda"){
-        lambda <- t(apply(fit$lambda[sel, ,drop = FALSE], 2, SummarySamps, q = q))
-        if (nrow(lambda) > 1) {
-          rownames(lambda) <- paste0("lambda", 1:nrow(lambda))
-        } else {
-          rownames(lambda) <- "lambda"
-        }
-        
-        colnames(lambda) <- colnames(SummarySamps(fit$lambda[sel], q = q))
-        
-        effective_sample_size <- apply(fit$lambda[sel, , drop = FALSE], 2, effective_sample_size)
-        return(cbind(lambda, effective_sample_size))
+        ret <- ret$lambda
       }
-      
-      #return est.h estimates if it is est.h
+        
+        #return est.h estimates if it is est.h
       if(par == "est.h"){
-        if (fit$est.h) {
-          h <- t(apply(fit$h.hat[sel, ], 2, SummarySamps, q = q))
-          rownames(h) <- paste0("h", 1:nrow(h))
-          colnames(h) <- colnames(SummarySamps(fit$h.hat[sel,], q=q))
-          effective_sample_size <- apply(fit$h.hat[sel, , drop = FALSE], 2, effective_sample_size)
-          return(cbind(h, effective_sample_size))
+        if (!is.null(fit$est.h)) {
+          ret <- ret$est.h
         }
         else{
           stop('"est.h" is not a valid parameter')
         }
       }
-      
-      #return hnew estimates if it is hnew
+        
+        #return hnew estimates if it is hnew
       if(par == "hnew"){
         if (!is.null(fit$hnew)) {
-          hnew <- t(apply(fit$hnew[sel, ], 2, SummarySamps, q = q))
-          rownames(hnew) <- paste0("hnew", 1:nrow(hnew))
-          colnames(hnew) <- SummarySamps(fit$hnew[sel, ], q = q)
-          effective_sample_size <- apply(fit$hnew[sel, , drop = FALSE], 2, effective_sample_size)
-          return(cbind(hnew, effective_sample_size))
+          ret <- ret$hnew
         }
         else{
           stop('"hnew" is not a valid parameter')
         }
       }
-      
-      #return ystar estimates if it is ystar
+        
+        #return ystar estimates if it is ystar
       if(par == "ystar"){
         if (!is.null(fit$ystar)) {
-          ystar <- t(apply(fit$ystar[sel, ], 2, SummarySamps, q = q))
-          rownames(ystar) <- paste0("ystar", 1:nrow(ystar))
-          colnames(ystar) <- colnames(fit$ystar[sel, ], q = q)
-          effective_sample_size <- apply(fit$ystar[sel, , drop = FALSE], 2, effective_sample_size)
-          return(cbind(ystar, effective_sample_size))
+          ret <- ret$ystar
+        }
+        else{
+          stop('"ystar" is not a valid parameter')
         }
       }
     }
   }
-  
   else{
     stop('Invalid parameter supllied, must be one of "beta", "sigsq.eps", "r", "lambda", "h", "hnew", or "ystar" ')
   }
-  
+  ret
 }
 
 #' Extract samples
@@ -351,7 +360,7 @@ ExtractEsts2 <- function(fit, par, q = c(0.025, 0.25, 0.5, 0.75, 0.975), sel = N
 #' fitkm <- kmbayes(y = y, Z = Z, modifier = modifier, X = X, iter = 10, verbose = FALSE) 
 #' 
 #' samps <- ExtractSamps(fitkm)
-ExtractSamps2 <- function(fit, par, sel = NULL) {
+ExtractSamps2 <- function(fit, sel = NULL) {
   if (inherits(fit, "bkmrfit")) {
     if (is.null(sel)) {
       sel <- with(fit, seq(burnin + 1, iter))

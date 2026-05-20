@@ -11,7 +11,7 @@ TracePlot(
   sel = NULL,
   main = "",
   xlab = "iteration",
-  ylab = "parameter value",
+  ylab = NULL,
   ...
 )
 }
