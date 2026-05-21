@@ -121,6 +121,7 @@ str(Liu_data)
 y <- Liu_data$y
 X <- Liu_data$Age
 Z <- as.matrix(Liu_data[2:4])
+modifier <- Liu_data$Sex
 #fit bkmr::kmbayes and get a plotable object
 bkmr_model <- bkmr::kmbayes(y, Z, X, iter = 10, verbose = FALSE)
 bkmr_input <- bkmr::PredictorResponseUnivar(fit = bkmr_model)
@@ -291,7 +292,7 @@ long-term trends or drifts. This indicates that your estimates have converged. L
 in the plot indicate slower convergence, poor convergence, or no convergence at all. See [insert section
 here for where to go] for more details and trouble shooting (should I add a new section in the User Implimented Changes? ).
 
-```{r}
+```{r, fig.width=8, fig.height=8}
 par(mfrow = c(2, 2))
 TracePlot(fitkm, par = "beta")
 TracePlot(fitkm, par = "sigsq.eps")
