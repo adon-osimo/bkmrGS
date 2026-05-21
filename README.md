@@ -2,6 +2,6 @@ The R package `bkmrGS` implements Bayesian kernel machine regression (BKMR) with
 
 You can install the latest released version of `bkmr` from GitHub with:
 ```R
-remotes::install_github("ddemateis/bkmrGS")
+remotes::install_github("adon-osimo/bkmrGS")
 ```
 
