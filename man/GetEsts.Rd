@@ -20,6 +20,8 @@ GetEsts(
 \item{q}{vector of quantiles}
 
 \item{sel}{logical expression indicating samples to keep; defaults to keeping the burin in removed samples}
+
+\item{digits}{input for the amount of output digits required}
 }
 \value{
 a list where each component is a data frame containing the summary statistics of the posterior distribution of one of the parameters (or vector of parameters) being estimated

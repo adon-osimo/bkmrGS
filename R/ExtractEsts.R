@@ -203,6 +203,7 @@ ExtractSamps <- function(fit, sel = NULL) {
 #' @param par The parameter of interest that you want returned
 #' @param q vector of quantiles
 #' @param sel logical expression indicating samples to keep; defaults to keeping the burin in removed samples
+#' @param digits input for the amount of output digits required 
 #'
 #' @export
 #' 

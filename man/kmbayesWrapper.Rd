@@ -30,6 +30,8 @@ kmbayesWrapper(
 \arguments{
 \item{formula}{a formula}
 
+\item{data}{a data frame}
+
 \item{iter}{number of iterations to run the sampler}
 
 \item{family}{a description of the error distribution and link function to be used in the model. Currently implemented for \code{gaussian} and \code{binomial} families.}
@@ -60,7 +62,9 @@ kmbayesWrapper(
 
 \item{gs.sig}{TRUE or FALSE: indicator for whether to estimate separate error variance terms for each group. Only available for the group-separable method (\code{kernel.method = "two"})}
 
-\item{modifier}{a vector categorical values of length \code{n} that may modify the exposure-response associations. Control level ordering by using class \code{factor}, or use default level orders with any vector class.}
+\item{burnin}{An integer that specifies how many observation must be discarded for burnin.}
+
+\item{Znew}{description that I will come back to}
 }
 \value{
 an object of class "bkmrfit" (containing the posterior samples from the model fit), which has the associated methods:
