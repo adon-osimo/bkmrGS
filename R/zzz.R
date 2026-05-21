@@ -1,5 +1,5 @@
 .onAttach <- function(libname, pkgname) {
-  packageStartupMessage("For guided examples, see vignette('bkmrGSOverview'). This package is based on the bkmr package version 0.2.2. For a BKMR analysis without effect modification, use the latest bkmr package.")
+  packageStartupMessage("For guided examples, see vignette('VignetteDraft'). This package is based on the bkmr package version 0.2.2.")
 }
 
 release_questions <- function() {

@@ -3,7 +3,6 @@
 S3method(print,bkmrfit)
 S3method(summary,bkmrfit)
 export(ComputePostmeanHnew)
-export(ComputePostmeanHnewBlocked)
 export(ExtractEsts)
 export(ExtractPIPs)
 export(ExtractSamps)

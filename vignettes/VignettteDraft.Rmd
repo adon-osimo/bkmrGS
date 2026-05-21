@@ -1,15 +1,12 @@
 ---
-title: "Group Seperable BKMR Overview"
-author: "Adon Osimo"
-date: "2026-02-10"
-output:
-  pdf_document: default
-  html_document: default
-header-includes:
-  - \usepackage{xcolor}
-editor_options:
-  markdown:
-    wrap: 72
+title: "Group Separable BKMR Overview"
+author: "by Danielle Demateis and Adon Osimo"
+output: rmarkdown::html_vignette
+
+vignette: >
+  %\VignetteIndexEntry{Group Separable BKMR Overview}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
 ---
 
 ```{r, echo = FALSE}
@@ -49,9 +46,8 @@ not have all of the functionality of that package. For a standard BKMR
 analysis, please use the standard `bkmr` package. If you are using both
 the `bkmr` and `bkmrGS` packages in the same R session, make sure to
 specify the package names when calling functions. For example, you can
-call `bkmr::kmbayes` or `bkmrGS::kmbayes` to differentiate between the
-functions in the two packages. [At one point, once the two package are
-integrated, it would be nice not to have this line]
+call `bkmr::kmbayes` or `bkmrGS::kmbayesWrapper` to differentiate between the
+functions in the two packages, however you can run standard BKMR through `bkmrGS::kmbayesWrapper` by setting `mod = NULL`. 
 
 ## Standard bkmr
 
@@ -119,6 +115,7 @@ interpretability.
 ```{r warning=FALSE, include=FALSE}
 #make data for the plot
 #ex_data_plot <- data.frame(y = Liu_data$y, Log_Lead = Liu_data$Log_Leag, Log_Manganese = Liu_data$Log_Manganese, Log_Arsenic = Liu_data$Log_Arsenic, ex_data$X)
+set.seed(456)
 data("Liu_data")
 str(Liu_data)
 y <- Liu_data$y
@@ -132,7 +129,7 @@ std_bkmr_plot <- ggplot(bkmr_input, aes(z, est, ymin = est - 1.96*se, ymax = est
     facet_wrap(~ variable) +
   ylab("h(z)")
 
-#fit bkmrGS::kmbayes and get a plotable object
+#fit bkmrGS::kmbayesWrapper and get a plotable object
 bkmrGS_model <- kmbayesWrapper(y ~ h(Log_Lead, Log_Manganese, Log_Arsenic, mod = Sex) + Age, 
                           data = Liu_data,
                           iter = 10, 
@@ -192,7 +189,7 @@ showcasing the usability of `bkmrGS`.
 ## Data Set and Fitting {#data-fitting}
 
 Using the example data set in the package, we will fit the model using
-the `kmbayes()` function [Subject to name changes]. First load the data
+the `kmbayesWrapper()` function. First load the data
 set:
 
 ```{r}
@@ -220,16 +217,16 @@ head(Liu_data)
 
 Now fit the model with the `bkmrGS()`
 function. The following example uses 10 MCMC iterations, but it is
-important to use ample MCMC iterations. Typically, we would like to see at least 1,000 usable iterations, but this largely depends on your effective sample size and model convergence. To check model convergence, see section [INSERT SECTION HERE].
+important to use ample MCMC iterations. Typically, we would like to see at least 1,000 usable iterations, but this largely depends on your effective sample size and model convergence. To check model convergence, see [Model Checking](#model-checking).
 Here, `bkmrGS()` takes the arguments
 
 -   `y`, the name of a column in your data frame that will be your response, note that it must be a column of a continuous variable
 
--   `h(Z_1, Z_2, ... ,Z_k,mod = modifier_name)`, the names of
+-   `h(Z_1, Z_2, ... ,Z_k, / mod = modifier_name)`, the names of
     every exposure you want included in the model, along with the name
     of the modifier column, note that if you don't include a modifier column or set `mod=NULL`, then the function will run standard BKMR
 
--   `X_1 + X_2 +...+X_n`, the names of all covariates you would like
+-   `X_1 + X_2 +...+ X_n`, the names of all covariates you would like
     added to the model separated by plus signs
 
 -   `data`, the data frame which you are pulling all this from
@@ -292,7 +289,7 @@ function. This function asks you to specify the parameter with the
 argument. These trace plots should exhibits rapid up and down variation with no
 long-term trends or drifts. This indicates that your estimates have converged. Long-term trends or drifts
 in the plot indicate slower convergence, poor convergence, or no convergence at all. See [insert section
-here for where to go] for more details and trouble shooting.
+here for where to go] for more details and trouble shooting (should I add a new section in the User Implimented Changes? ).
 
 ```{r}
 par(mfrow = c(2, 2))
@@ -331,9 +328,9 @@ details.
 
 After reviewing our model to ensure proper mixing, and checking it's
 acceptance rates, we can move on to reviewing the model output. Here if
-we call the `ExtractEsts` function it will give us estimates for each of
+we call the `GetEsts` function it will give us estimates for each of
 our model parameters as well as quantiles for those estimates. Similarly
-we can use `ExtractSamps` to get and view all the samples our MCMC
+we can use `GetSamps` to get and view all the samples our MCMC
 algorithm decided to keep at each point
 
 ```{r}
@@ -353,7 +350,7 @@ output section
 
 To plot the estimated exposure-response function for each group, use the
 `PredictorResponseUnivar()` function. This function takes a fit object
-from `kmbayes` (`fit`), estimation method (`"exact"` or `"fullpost"`), and a reference quantile (`"q.fixed"`). Here `q.fixed` is telling us the quantile value at which the exposures not being varied are being held constant. This provides a reference point when estimating the effect of changes in the exposure mixture. 
+from `kmbayesWrapper` (`fit`), estimation method (`"exact"` or `"fullpost"`), and a reference quantile (`"q.fixed"`). Here `q.fixed` is telling us the quantile value at which the exposures not being varied are being held constant. This provides a reference point when estimating the effect of changes in the exposure mixture. 
 It returns the estimated exposure-response function value (`est`) and
 standard error (`se`) across a grid of exposure values (`z`) for each
 exposure (`variable`) for each modifier level (`modifier`). This is
@@ -391,38 +388,19 @@ ggplot(pred.resp.univar, aes(z, est, ymin = est - 1.96*se,
   scale_color_manual(values=c("#D9782D", "#1E4D2B"))
 ```
 
-Additional notes and comments:
-
-ExtractEst and Extract Samps make sense
-
-ComputePostMeanHnew? Not really?
-
-Summarize model output PredictorResponseBivarLevels -
-PredictorResponseBivarPair - PredictorRespopnseUnivar
-
-These only work on specific groups?
-
-Now that I have deleted the prediction section I just framed it as
-Understanding the group specific effects and between group differences
-
 ### Group specific effects {#GSeffects}
-
-SECTION FOR INTRODUCTION? 
 
 One of the primary advantages of the group-separable BKMR framework is
 the ability to estimate group-specific mixture effects. Across each
 level of the modifier, we can evaluate how the overall mixture and
 individual exposures impact the outcome. In this section, we consider two types of group-specific effects the overall mixture effect and the single exposure effects. The former evaluates the change in outcome when all exposures are increase simultaneously across qunatiles. The ladder isolates the association between an individual exposure and the outcome while holding the remaining exposures fixed. These summaries provide insight into the joint behavior of the mixture and the individual exposure contributions.
 
-
-SECTION FOR JOINT RISK SUMMARIES?
-
 We begin by estimating the
 overall effect of the exposure mixture for a fixed modifier level. The
 `OverallRiskSummaries()` function computes the change in the outcome
 when all exposures are jointly increased to specified quantiles,
 relative to a fixed reference level. This function takes an argument
-`fit` which is an object from `kmbayesBlocked`, the argument `qs`
+`fit` which is an object from `kmbayesWrapper`, the argument `qs`
 specifies the quantiles at which the mixture is evaluated, while
 `q.fixed` defines the reference quantile. The argument `m.fixed`
 indicates the modifier level, so the resulting estimates correspond to
@@ -480,14 +458,12 @@ ggplot(total_mix_gs_df,
 
 ```
 
-NEW SECTION TITLE? 
-
 Next, we examine single exposure effects within the mixture using the
 `SingVarRiskSummaries()` function. This function estimates the change in
 the outcome associated with increasing one exposure from a lower to a
 higher quantile, while holding the remaining exposures fixed. This
 function takes an argument `fit` which is an object from
-`kmbayesBlocked`, the argument `qs.diff` specifies the lower and upper
+`kmbayesWrapper`, the argument `qs.diff` specifies the lower and upper
 quantiles used for this comparison, and `q.fixed` defines the quantile
 at which the remaining exposures are held fixed. The argument `m.fixed`
 indicates the modifier level, so the resulting estimates correspond to
@@ -559,9 +535,9 @@ We estimate the difference in the overall mixture effect between groups
 using the `OverallIntSummaries()` function. This function computes the
 difference in the estimated mixture effect between two modifier levels
 at specified quantiles of the exposure distribution. This function takes
-an argument `fit` which is an object from `kmbayesBlocked`, the argument
+an argument `fit` which is an object from `kmbayesWrapper`, the argument
 `mod.diff = c("male", "female")` indicates that the estimated
-differences correspond to female minus male, \textcolor{red}{the argument} `sel = 5:10`
+differences correspond to female minus male, the argument `sel = 5:10`
 specifies which posterior samples from the fitted model are used when
 computing the summaries. Positive values therefore
 indicate a stronger association in females, while negative values
@@ -600,7 +576,7 @@ To estimate differences in single-exposure effects between groups, we
 use the `SingVarIntSummaries()` function. This function evaluates how
 the effect of changing one exposure differs across modifier levels,
 while holding all other exposures fixed. This function takes an argument
-`fit` which is an object from `kmbayesBlocked`, the argument `qs.diff` a
+`fit` which is an object from `kmbayesWrapper`, the argument `qs.diff` a
 vector of two quantiles for computing the difference `qs.diff`, the
 argument `q.fixed` which is a single value repeated twice in a vector at
 which to fix the other exposure, and `m.fixed` which is the modifier
@@ -644,6 +620,8 @@ ggplot(single_exp_btwn, aes(x="", y = est, ymin = est - 1.96*sd,
 
 ## Changing the tuning parameters?
 
+Should I keep this? Check bkmr's for this 
+
 ## Changing the priors
 
 Our package allows users to modify prior distributions for the model
@@ -654,8 +632,6 @@ implied distributions under different hyperparameter choices. After
 specifying alternative priors, the `PlotPriorFits()` function can be
 used to visualize how these choices influence the implied
 exposure-response relationships.
-
-How to change priors - InvestigatePriors - PlotPriorFits
 
 ## Changing the methods
 
@@ -685,3 +661,5 @@ variability or bias.
 
 Explicitly defining the difference between `method = "one"` and
 `method = "two"` and such.
+
+## Checking Model Convergence
