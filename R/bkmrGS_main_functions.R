@@ -1,3 +1,18 @@
+# makeKpart <- function(r, Z) {
+# Kpart <- as.matrix(dist(sqrt(matrix(r, byrow=TRUE, nrow(Z), ncol(Z)))*Z))^2
+# Kpart
+# }
+makeKpart <- function(r, Z1, Z2 = NULL) {
+  Z1r <- sweep(Z1, 2, sqrt(r), "*")
+  if (is.null(Z2)) {
+    Z2r <- Z1r
+  } else {
+    Z2r <- sweep(Z2, 2, sqrt(r), "*")
+  }
+  Kpart <- fields::rdist(Z1r, Z2r)^2
+  Kpart
+}
+
 get_block_ids <- function(modifier, p = NULL){
   if(!is.null(modifier)){
     groups <- apply(modifier, 1, paste, collapse = "")
@@ -7,6 +22,66 @@ get_block_ids <- function(modifier, p = NULL){
     list(seq_len(p))
   }
 }
+
+makeVcomps <- function(r, lambda, Z, data.comps, modifier = NULL) {
+  if (is.null(data.comps$knots)) {
+    Kpart <- makeKpart(r, Z)
+    K <- exp(-Kpart)
+    if(!is.null(modifier)){
+      K <- block_kernel(mod_vec1 = modifier,
+                        mod_vec2 = modifier,
+                        K = K)
+    }
+    scalar_lambda <- lambda_scalar(mod1 = modifier, mod2 = modifier, lambda = lambda, data.comps = data.comps)
+    V <- diag(1, nrow(Z), nrow(Z)) + scalar_lambda*K
+    #for model with random intercept
+    if (data.comps$randint) { #changed from data.comps$nlambda == 2 upon GS-tau model implementation
+      V <- V + lambda[length(lambda)-1]*data.comps$crossTT
+    }
+    cholV <- chol(V)
+    Vinv <- chol2inv(cholV)
+    logdetVinv <- -2*sum(log(diag(cholV)))
+    Vcomps <- list(Vinv = Vinv, logdetVinv = logdetVinv, tmp = scalar_lambda*K, scalar_lambda = scalar_lambda)
+  } else {## predictive process approach
+    ## note: currently does not work with random intercept model
+    nugget <- 0.001
+    n0 <- nrow(Z)
+    n1 <- nrow(data.comps$knots)
+    nall <- n0 + n1
+    # Kpartall <- makeKpart(r, rbind(Z, data.comps$knots))
+    # Kall <- exp(-Kpartall)
+    # K0 <- Kall[1:n0, 1:n0 ,drop=FALSE]
+    # K1 <- Kall[(n0+1):nall, (n0+1):nall ,drop=FALSE]
+    # K10 <- Kall[(n0+1):nall, 1:n0 ,drop=FALSE]
+    K1 <- exp(-makeKpart(r, data.comps$knots))
+    if(!is.null(modifier)){
+      K1 <- block_kernel(mod_vec1 = modifier,
+                         mod_vec2 = modifier,
+                         K = K1)
+    }
+    K10 <- exp(-makeKpart(r, data.comps$knots, Z))
+    if(!is.null(modifier)){
+      K10 <- block_kernel(mod_vec1 = modifier, 
+                          mod_vec2 = modifier,
+                          K = K10)
+    }
+    Q <- K1 + diag(nugget, n1, n1)
+    scalar_lambda <- lambda_scalar(mod1 = modifier, 
+                                   mod2 = modifier, 
+                                   lambda = lambda,
+                                   data.comps = data.comps)
+    R <- Q + scalar_lambda*tcrossprod(K10)
+    cholQ <- chol(Q)
+    cholR <- chol(R)
+    Qinv <- chol2inv(cholQ)
+    Rinv <- chol2inv(cholR)
+    Vinv <- diag(1, n0, n0) - scalar_lambda*t(K10) %*% Rinv %*% K10
+    logdetVinv <- 2*sum(log(diag(cholQ))) - 2*sum(log(diag(cholR)))
+    Vcomps <- list(Vinv = Vinv, logdetVinv = logdetVinv, cholR = cholR, Q = Q, K10 = K10, Qinv = Qinv, Rinv = Rinv)
+  }
+  Vcomps
+}
+
 
 makeVcompsBlocked <- function(r, lambda, Z, data.comps, modifier = NULL) {
   #Check if data.comps is null
@@ -138,7 +213,6 @@ lambda_scalar_blocked <- function(modifier, lambda, data.comps, block_ids) {
 #'
 #' Fits the Bayesian kernel machine regression (BKMR) model with group-separable kernel using Markov chain Monte Carlo (MCMC) methods.
 #'
-#' @export
 #'
 #' @param y a vector of outcome data of length \code{n}.
 #' @param Z an \code{n}-by-\code{M} matrix of predictor variables to be included in the \code{h} function. Each row represents an observation and each column represents an predictor.
@@ -166,22 +240,9 @@ lambda_scalar_blocked <- function(modifier, lambda, data.comps, block_ids) {
 #'   \item \code{\link{summary}} (i.e., \code{\link{summary.bkmrfit}})
 #' }
 #' 
-#' @seealso For guided examples, see vignette(bkmrGSOverview)
-#' @references Bobb, JF, Valeri L, Claus Henn B, Christiani DC, Wright RO, Mazumdar M, Godleski JJ, Coull BA (2015). Bayesian Kernel Machine Regression for Estimating the Health Effects of Multi-Pollutant Mixtures. Biostatistics 16, no. 3: 493-508.
-#' @references Banerjee S, Gelfand AE, Finley AO, Sang H (2008). Gaussian predictive process models for large spatial data sets. Journal of the Royal Statistical Society: Series B (Statistical Methodology), 70(4), 825-848.
 #' @import utils
 #' 
-#' @examples
-#' ## First, seperate the data set
-#' y <- ex_data$y
-#' Z <- ex_data$Z
-#' X <- ex_data$X
-#' 
-#' ## Fit model 
-#' ## Using only 10 iterations to make example run quickly
-#' ## Typically should use a large number of iterations for inference
-#' set.seed(111)
-#' fitkm <- kmbayesBlocked(y = y, Z = Z, modifier = "Sex", X = X, iter = 10, verbose = FALSE) 
+#' @noRd
 kmbayesBlocked <- function(y, Z, X, 
                     modifier = NULL, #added by DD, 
                     iter = 1000, family = "gaussian", id = NULL, verbose = TRUE, 
@@ -769,6 +830,202 @@ kmbayesBlocked <- function(y, Z, X,
   chain
 }
 
+#' Fit Bayesian kernel machine regression
+#' 
+#' Fits the Bayesian kernel machine regression (BKMR) model with group-separable kernel or with standard kernel using Markov chain Monte Carlo (MCMC) methods.
+#'
+#' @export
+#'
+#' @param formula a formula
+#' @param data a data frame
+#' @param iter number of iterations to run the sampler
+#' @param family a description of the error distribution and link function to be used in the model. Currently implemented for \code{gaussian} and \code{binomial} families.
+#' @param id optional vector (of length \code{n}) of grouping factors for fitting a model with a random intercept. If NULL then no random intercept will be included.
+#' @param verbose TRUE or FALSE: flag indicating whether to print intermediate diagnostic information during the model fitting.
+#' @param starting.values list of starting values for each parameter. If not specified default values will be chosen.
+#' @param control.params list of parameters specifying the prior distributions and tuning parameters for the MCMC algorithm. If not specified default values will be chosen.
+#' @param varsel TRUE or FALSE: indicator for whether to conduct variable selection on the Z variables in \code{h}
+#' @param groups optional vector (of length \code{M}) of group indicators for fitting hierarchical variable selection if varsel=TRUE. If varsel=TRUE without group specification, component-wise variable selections will be performed.
+#' @param knots optional matrix of knot locations for implementing the Gaussian predictive process of Banerjee et al. (2008). Currently only implemented for models without a random intercept.
+#' @param ztest optional vector indicating on which variables in Z to conduct variable selection (the remaining variables will be forced into the model).
+#' @param rmethod for those predictors being forced into the \code{h} function, the method for sampling the \code{r[m]} values. Takes the value of 'varying' to allow separate \code{r[m]} for each predictor; 'equal' to force the same \code{r[m]} for each predictor; or 'fixed' to fix the \code{r[m]} to their starting values
+#' @param est.h TRUE or FALSE: indicator for whether to sample from the posterior distribution of the subject-specific effects h_i within the main sampler. This will slow down the model fitting.
+#' @param kernel.method When \code{modifier = "TRUE"}, use \code{kernel.method = "one"} for the standard approach or \code{kernel.method = "two"} for a group-separable approach with a categorical modifier
+#' @param gs.tau TRUE or FALSE: indicator for whether to use group-specific tau parameters, only available for the group-separable method (\code{kernel.method = "two"})
+#' @param gs.sig TRUE or FALSE: indicator for whether to estimate separate error variance terms for each group. Only available for the group-separable method (\code{kernel.method = "two"})
+#' @param burnin An integer that specifies how many observation will be discarded for burnin. 
+#' @return an object of class "bkmrfit" (containing the posterior samples from the model fit), which has the associated methods:
+#' \itemize{
+#'   \item \code{\link{print}} (i.e., \code{\link{print.bkmrfit}}) 
+#'   \item \code{\link{summary}} (i.e., \code{\link{summary.bkmrfit}})
+#' }
+#' 
+#' @seealso For guided examples, see vignette(VignetteDraft)
+#' @references Bobb, JF, Valeri L, Claus Henn B, Christiani DC, Wright RO, Mazumdar M, Godleski JJ, Coull BA (2015). Bayesian Kernel Machine Regression for Estimating the Health Effects of Multi-Pollutant Mixtures. Biostatistics 16, no. 3: 493-508.
+#' @references Banerjee S, Gelfand AE, Finley AO, Sang H (2008). Gaussian predictive process models for large spatial data sets. Journal of the Royal Statistical Society: Series B (Statistical Methodology), 70(4), 825-848.
+#' @import utils
+#' 
+#' @examples
+#' ## Call the entire model and run it's summary
+#' set.seed(111) 
+#' fitkm <- bkmrGS(y ~ h(Log_Lead, Log_Manganese, Log_Arsenic, mod = Sex) +
+#'                           Age + Gestation + Delivery + Birth_order +
+#'                           Education_parent1 + Education_parent2 + Smoking +
+#'                           HOME_emotional + HOME_avoid + HOME_careg + 
+#'                           HOME_env + HOME_play + HOME_stim + 
+#'                           Energy,
+#'                         data = Liu_data, 
+#'                         iter = 10, 
+#'                         verbose = FALSE) 
+#' summary(fitkm)
+
+bkmrGS <- function(formula, data,
+                   iter = 1000, family = "gaussian", id = NULL, verbose = TRUE, 
+                   starting.values = NULL, control.params = NULL, varsel = FALSE, 
+                   groups = NULL, knots = NULL, ztest = NULL, rmethod = "varying",
+                   est.h = FALSE, kernel.method = "two",
+                   gs.tau = TRUE, gs.sig = FALSE, burnin = iter/2, Znew = NULL) {
+  
+  #seperate out the formula? 
+  #checks
+  # So this all works, now my goal is to be able to from the data frame
+  # make sure there is only 1 h() 
+  # pull out the response OR reject if no response is found in the data frame
+  # pull out the Z and modifier (mod) from either h or kernel OR reject if no 
+  # Z or modifier (mod) is in there, OR if there are more than 1 h()
+  # pull out the X OR reject if no X is found
+  # ensure that the data frame is a data frame or matrix
+  # ensure that the size checks pass
+  
+  #seperate formula
+  formula <- as.formula(formula)
+  terms_obj <- terms(formula)
+  term_labels <- attr(terms_obj, "term.labels")
+  
+  #extract response
+  response <- all.vars(formula)[attr(terms_obj, "response")]
+  
+  #check response
+  if(length(response) != 1){
+    stop("Response needs to be exactly one column from the data")
+  }
+  
+  if(!(response %in% names(data))){
+    stop(paste0("Response '", response, "' not found in data"))
+  }
+  
+  # Extract h()
+  h_term <- term_labels[grepl("^h\\(", term_labels)]
+  
+  #check h()
+  if (length(h_term) > 1) {
+    stop("Exactly one h() term needs to be declared.")
+  }
+  
+  if (length(h_term) < 1){
+    stop("Need to declare exactly one h().")
+  }
+  
+  #parse h()  
+  h_call <- str2lang(h_term)
+  args <- as.list(h_call)[-1]
+  arg_names <- c()
+  
+  #if arg_names is not null, we have a modifier
+  if(!is.null(names(args))){
+    arg_names <- names(args)
+    
+    Z_vars <- args[arg_names == "" | is.null(arg_names)]
+    Z_names <- sapply(Z_vars, deparse)
+  }else{
+    #pull out the arguments in h()
+    Z_names <- as.character(args)
+  }
+  
+  #check Z
+  if (length(Z_names) == 0) {
+    stop("No exposure variables supplied inside h().")
+  }
+  
+  missing_Z <- setdiff(Z_names, names(data))
+  
+  if (length(missing_Z) > 0) {
+    stop(
+      sprintf(
+        "Variables in h() not found in data: %s",
+        paste(missing_Z, collapse = ", ")
+      )
+    )
+  }
+  
+  #separate mod/modifier
+  mod_name <- ""
+  if("mod" %in% arg_names){
+    mod_name <- deparse(args[["mod"]])
+  } else if ("modifier" %in% arg_names){
+    mod_name <- deparse(args[["modifier"]])
+  } else {mod_name <- NULL}
+  
+  if(!is.null(mod_name) && mod_name == "NULL"){
+    mod_name <- NULL
+  }
+  
+  
+  #check modifier 
+  if(length(mod_name) > 1){
+    stop("Modifier can only be one column")
+  }
+  
+  if (!is.null(mod_name)) {
+    if (!(mod_name %in% names(data))) {
+      stop(paste0("Modifier '", mod_name, "' not found in data."))
+    }
+  }
+  
+  #get X 
+  X_terms <- term_labels[!grepl("^h\\(", term_labels)]
+  
+  #check X
+  #X can be null, duh
+  #if (length(X_terms) == 0) {
+  #  stop("No covaraites supplied inside X")
+  #}
+  
+  missing_X <- setdiff(X_terms, names(data))
+  
+  if (length(missing_X) > 0) {
+    stop(
+      sprintf(
+        "Covariates not found in data: %s",
+        paste(missing_X, collapse = ", ")
+      )
+    )
+  }
+  
+  #passed all checks 
+  
+  y <- data[[response]]
+  if(!is.null(mod_name)){
+    X <- data[c(X_terms, mod_name)]
+  } else{
+    X <- data[c(X_terms)]
+    kernel.method = "one"
+    gs.tau = FALSE
+    gs.sig = FALSE
+  }
+  Z <- data[Z_names]
+  modifier <- mod_name
+  
+  return(kmbayesBlocked(y, Z, X, modifier, 
+                        iter, family, id, verbose, starting.values, control.params, varsel, 
+                        groups, knots, ztest, rmethod,
+                        est.h, kernel.method,
+                        gs.tau, gs.sig, burnin))
+  
+  
+}
+
+
 #' Print basic summary of BKMR model fit
 #'
 #' \code{print} method for class "bkmrfit"
@@ -782,18 +1039,16 @@ kmbayesBlocked <- function(y, Z, X,
 #' @return No return value, prints basic summary of fit to console
 #' 
 #' @examples
-#' ## First generate data set
-#' y <- ex_data$y
-#' Z <- ex_data$Z
-#' modifier <- ex_data$X$Sex
-#' X_full <- ex_data$X[,-2] #remove Sex from the covariate matrix because it is the modifier
-#' #create design matrix to account for factor variables, remove the intercept column
-#' X <- model.matrix(~., data=X_full)[,-1] 
-#' ## Fit model 
-#' ## Using only 10 iterations to make example run quickly
-#' ## Typically should use a large number of iterations for inference
-#' set.seed(111)
-#' fitkm <- kmbayes(y = y, Z = Z, modifier = modifier, X = X, iter = 10, verbose = FALSE) 
+#' set.seed(111) 
+#' fitkm <- bkmrGS(y ~ h(Log_Lead, Log_Manganese, Log_Arsenic, mod = Sex) +
+#'                           Age + Gestation + Delivery + Birth_order +
+#'                           Education_parent1 + Education_parent2 + Smoking +
+#'                           HOME_emotional + HOME_avoid + HOME_careg + 
+#'                           HOME_env + HOME_play + HOME_stim + 
+#'                           Energy,
+#'                         data = Liu_data, 
+#'                         iter = 10, 
+#'                         verbose = FALSE) 
 #' fitkm
 print.bkmrfit <- function(x, digits = 5, ...) {
   cat("Fitted object of class 'bkmrfit'\n")
@@ -818,19 +1073,16 @@ print.bkmrfit <- function(x, digits = 5, ...) {
 #' @return No return value, prints more detailed summary of fit to console
 #' 
 #' @examples
-#' ## First generate data set
-#' y <- ex_data$y
-#' Z <- ex_data$Z
-#' modifier <- ex_data$X$Sex
-#' X_full <- ex_data$X[,-2] #remove Sex from the covariate matrix because it is the modifier
-#' #create design matrix to account for factor variables, remove the intercept column
-#' X <- model.matrix(~., data=X_full)[,-1] 
-#' 
-#' ## Fit model 
-#' ## Using only 10 iterations to make example run quickly
-#' ## Typically should use a large number of iterations for inference
-#' set.seed(111)
-#' fitkm <- kmbayes(y = y, Z = Z, modifier = modifier, X = X, iter = 10, verbose = FALSE) 
+#' set.seed(111) 
+#' fitkm <- bkmrGS(y ~ h(Log_Lead, Log_Manganese, Log_Arsenic, mod = Sex) +
+#'                           Age + Gestation + Delivery + Birth_order +
+#'                           Education_parent1 + Education_parent2 + Smoking +
+#'                           HOME_emotional + HOME_avoid + HOME_careg + 
+#'                           HOME_env + HOME_play + HOME_stim + 
+#'                           Energy,
+#'                         data = Liu_data, 
+#'                         iter = 10, 
+#'                         verbose = FALSE) 
 #' summary(fitkm)
 summary.bkmrfit <- function(object, q = c(0.025, 0.975), digits = 5, show_ests = TRUE, show_MH = TRUE, ...) {
   x <- object
@@ -874,6 +1126,7 @@ summary.bkmrfit <- function(object, q = c(0.025, 0.975), digits = 5, show_ests =
         accep_rates %<>% rbind(data.frame(param = nm, rate = rate))
       }
     }
+    accep_rates %<>% dplyr::mutate(rate = round(rate, digits))
     print(accep_rates)
     
     #warnings for convergence
@@ -934,13 +1187,13 @@ summary.bkmrfit <- function(object, q = c(0.025, 0.975), digits = 5, show_ests =
     #warnings for ess
     low_ess <- summ$param[
       !is.na(summ$ess) &
-        summ$ess < 100 &
-        summ$ess >= 30
+        summ$ess < 500 &
+        summ$ess >= 100
     ]
     
     very_low_ess <- summ$param[
       !is.na(summ$ess) &
-        summ$ess < 30
+        summ$ess < 100
     ]
     
     null_ess <- summ$param[
@@ -953,9 +1206,9 @@ summary.bkmrfit <- function(object, q = c(0.025, 0.975), digits = 5, show_ests =
       warns <- c(
         warns,
         paste(
-            "Low effective sample size (<100):",
+            "Low effective sample size (<500):",
             paste(low_ess, collapse = ", "),
-            "- posterior estimates may be unstable. Try?"
+            "- posterior estimates may be unstable. Check _____ for more help"
         )
       )
     }
@@ -964,9 +1217,9 @@ summary.bkmrfit <- function(object, q = c(0.025, 0.975), digits = 5, show_ests =
       warns <- c(
         warns,
         paste(
-          "Very low effective sample size (<30):",
+          "Very low effective sample size (<100):",
           paste(very_low_ess, collapse = ", "),
-          "- convergence is questionable. Try ?"
+          "- convergence is questionable. Check ____ for more help"
         )
       )
     }
@@ -977,7 +1230,7 @@ summary.bkmrfit <- function(object, q = c(0.025, 0.975), digits = 5, show_ests =
         paste(
           "Effective sample size is NULL:",
           paste(null_ess, collapse = ", "),
-          "- convergence has not been attained. Try ?"
+          "- convergence has not been attained. Check ____ for more help"
         )
       )
     }
