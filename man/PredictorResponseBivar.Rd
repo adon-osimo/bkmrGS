@@ -25,14 +25,6 @@ PredictorResponseBivar(
 \arguments{
 \item{fit}{An object containing the results returned by a the \code{kmbayes} function}
 
-\item{y}{a vector of outcome data of length \code{n}.}
-
-\item{Z}{an \code{n}-by-\code{M} matrix of predictor variables to be included in the \code{h} function. Each row represents an observation and each column represents an predictor.}
-
-\item{X}{an \code{n}-by-\code{K} matrix of covariate data where each row represents an observation and each column represents a covariate. Should not contain an intercept column.}
-
-\item{modifier}{a vector categorical values of length \code{n} that may modify the exposure-response associations. Control level ordering by using class \code{factor}, or use default level orders with any vector class.}
-
 \item{z.pairs}{data frame showing which pairs of predictors to plot}
 
 \item{method}{method for obtaining posterior summaries at a vector of new points. Options are "approx" and "exact"; defaults to "approx", which is faster particularly for large datasets; see details. Only "exact" is supported now}
@@ -41,7 +33,7 @@ PredictorResponseBivar(
 
 \item{q.fixed}{vector of quantiles at which to fix the remaining predictors in \code{Z}}
 
-\item{sel}{logical expression indicating samples to keep; defaults to keeping the second half of all samples}
+\item{sel}{logical expression indicating samples to keep; defaults to keeping the burin in removed samples}
 
 \item{min.plot.dist}{specifies a minimum distance that a new grid point needs to be from an observed data point in order to compute the prediction; points further than this will not be computed}
 

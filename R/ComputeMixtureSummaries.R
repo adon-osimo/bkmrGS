@@ -40,7 +40,7 @@ interactionSummary.approx <- function(newz.q1, newz.q2, modnew.1, modnew.2, pred
 #' Calculate overall risk summaries
 #' 
 #' Compare estimated \code{h} function when all predictors are at a particular quantile to when all are at a second fixed quantile
-#' @inheritParams kmbayes
+#' @inheritParams bkmrGS
 #' @inheritParams ComputePostmeanHnew
 #' @inherit ComputePostmeanHnew details
 #' @param qs vector of quantiles at which to calculate the overall risk summary 
@@ -49,20 +49,17 @@ interactionSummary.approx <- function(newz.q1, newz.q2, modnew.1, modnew.2, pred
 #' @export
 #' @return a data frame containing the (posterior mean) estimate and posterior standard deviation of the overall risk measures
 #' @examples
-#' ## First generate data set
-#' y <- ex_data$y
-#' Z <- ex_data$Z
-#' modifier <- ex_data$X$Sex
-#' X_full <- ex_data$X[,-2] #remove Sex from the covariate matrix because it is the modifier
-#' #create design matrix to account for factor variables, remove the intercept column
-#' X <- model.matrix(~., data=X_full)[,-1] 
-#' 
-#' ## Fit model 
-#' ## Using only 10 iterations to make example run quickly
-#' ## Typically should use a large number of iterations for inference
-#' set.seed(111)
-#' fitkm <- kmbayes(y = y, Z = Z, modifier = modifier, X = X, iter = 10, verbose = FALSE) 
-#' 
+#' set.seed(111) 
+#' fitkm <- bkmrGS(y ~ h(Log_Lead, Log_Manganese, Log_Arsenic, mod = Sex) +
+#'                           Age + Gestation + Delivery + Birth_order +
+#'                           Education_parent1 + Education_parent2 + Smoking +
+#'                           HOME_emotional + HOME_avoid + HOME_careg + 
+#'                           HOME_env + HOME_play + HOME_stim + 
+#'                           Energy,
+#'                         data = Liu_data, 
+#'                         iter = 10, 
+#'                         verbose = FALSE) 
+#'                         
 #' risks.overall <- OverallRiskSummaries(fitkm, qs = c(0.25, 0.75), 
 #' q.fixed = 0.5, 
 #' m.fixed = "male", method = "fullpost")
@@ -250,7 +247,7 @@ VarRiskSummary <- function (whichz = 1, fit, y = NULL, Z = NULL, X = NULL,
 #' 
 #' Compute summaries of the risks associated with a change in a single variable in \code{Z} from a single level (quantile) to a second level (quantile), for the other variables in \code{Z} fixed to a specific level (quantile) for a given modifier level
 #' 
-#' @inheritParams kmbayes
+#' @inheritParams bkmrGS
 #' @inheritParams ExtractEsts
 #' @inheritParams OverallRiskSummaries
 #' @inherit ComputePostmeanHnew details
@@ -264,20 +261,17 @@ VarRiskSummary <- function (whichz = 1, fit, y = NULL, Z = NULL, X = NULL,
 #' @return a data frame containing the (posterior mean) estimate and posterior standard deviation of the single-predictor risk measures
 #' 
 #' @examples
-#' ## First generate data set
-#' y <- ex_data$y
-#' Z <- ex_data$Z
-#' modifier <- ex_data$X$Sex
-#' X_full <- ex_data$X[,-2] #remove Sex from the covariate matrix because it is the modifier
-#' #create design matrix to account for factor variables, remove the intercept column
-#' X <- model.matrix(~., data=X_full)[,-1] 
-#' 
-#' ## Fit model 
-#' ## Using only 10 iterations to make example run quickly
-#' ## Typically should use a large number of iterations for inference
-#' set.seed(111)
-#' fitkm <- kmbayes(y = y, Z = Z, modifier = modifier, X = X, iter = 10, verbose = FALSE) 
-#' 
+#' set.seed(111) 
+#' fitkm <- bkmrGS(y ~ h(Log_Lead, Log_Manganese, Log_Arsenic, mod = Sex) +
+#'                           Age + Gestation + Delivery + Birth_order +
+#'                           Education_parent1 + Education_parent2 + Smoking +
+#'                           HOME_emotional + HOME_avoid + HOME_careg + 
+#'                           HOME_env + HOME_play + HOME_stim + 
+#'                           Energy,
+#'                         data = Liu_data, 
+#'                         iter = 10, 
+#'                         verbose = FALSE) 
+#'                         
 #' risks.singvar <- SingVarRiskSummaries(fitkm, qs.diff = c(0.25, 0.75), 
 #' q.fixed = 0.5, m.fixed = "male", method = "exact")
 SingVarRiskSummaries <- function(fit, y = NULL, Z = NULL, X = NULL, 
@@ -435,7 +429,7 @@ SingVarIntSummary <- function(whichz = 1, fit, y = NULL, Z = NULL,
 #' Single Variable Interaction Summaries
 #' 
 #' Compare the single-predictor health risks when all of the other predictors in Z are fixed to their a specific quantile to when all of the other predictors in Z are fixed to their a second specific quantile. For between-group overall effect estimates, set \code{mod.diff} to two separate levels of the modifier, and make \code{qs.diff} and \code{qs.fixed} the same vector. 
-#' @inheritParams kmbayes
+#' @inheritParams bkmrGS
 #' @inheritParams ExtractEsts
 #' @inheritParams SingVarRiskSummaries
 #' @inherit ComputePostmeanHnew details
@@ -447,20 +441,17 @@ SingVarIntSummary <- function(whichz = 1, fit, y = NULL, Z = NULL,
 #' @return a data frame containing the (posterior mean) estimate and posterior standard deviation of the single-predictor risk measures
 #' 
 #' @examples
-#' ## First generate data set
-#' y <- ex_data$y
-#' Z <- ex_data$Z
-#' modifier <- ex_data$X$Sex
-#' X_full <- ex_data$X[,-2] #remove Sex from the covariate matrix because it is the modifier
-#' #create design matrix to account for factor variables, remove the intercept column
-#' X <- model.matrix(~., data=X_full)[,-1] 
-#' 
-#' ## Fit model 
-#' ## Using only 10 iterations to make example run quickly
-#' ## Typically should use a large number of iterations for inference
-#' set.seed(111)
-#' fitkm <- kmbayes(y = y, Z = Z, modifier = modifier, X = X, iter = 10, verbose = FALSE) 
-#' 
+#' set.seed(111) 
+#' fitkm <- bkmrGS(y ~ h(Log_Lead, Log_Manganese, Log_Arsenic, mod = Sex) +
+#'                           Age + Gestation + Delivery + Birth_order +
+#'                           Education_parent1 + Education_parent2 + Smoking +
+#'                           HOME_emotional + HOME_avoid + HOME_careg + 
+#'                           HOME_env + HOME_play + HOME_stim + 
+#'                           Energy,
+#'                         data = Liu_data, 
+#'                         iter = 10, 
+#'                         verbose = FALSE) 
+#'                         
 #' risks.int <- SingVarIntSummaries(fitkm, qs.diff = c(0.25, 0.75), 
 #' qs.fixed = c(0.5,0.5), mod.diff = c("male", "female"), method = "exact")
 SingVarIntSummaries <- function(fit, y = NULL, Z = NULL, X = NULL,
@@ -584,7 +575,7 @@ OverallIntSummary <- function(whichz = 1, fit, y = NULL, Z = NULL,
 #' Overall Effect Interaction Summaries
 #' 
 #' Compare the overall effect difference between groups for models with modification 
-#' @inheritParams kmbayes
+#' @inheritParams bkmrGS
 #' @inheritParams ExtractEsts
 #' @inheritParams SingVarRiskSummaries
 #' @inherit ComputePostmeanHnew details
@@ -596,20 +587,17 @@ OverallIntSummary <- function(whichz = 1, fit, y = NULL, Z = NULL,
 #' @return a data frame containing the (posterior mean) estimate and posterior standard deviation of the single-predictor risk measures
 #' 
 #' @examples
-#' ## First generate data set
-#' y <- ex_data$y
-#' Z <- ex_data$Z
-#' modifier <- ex_data$X$Sex
-#' X_full <- ex_data$X[,-2] #remove Sex from the covariate matrix because it is the modifier
-#' #create design matrix to account for factor variables, remove the intercept column
-#' X <- model.matrix(~., data=X_full)[,-1] 
-#' 
-#' ## Fit model 
-#' ## Using only 10 iterations to make example run quickly
-#' ## Typically should use a large number of iterations for inference
-#' set.seed(111)
-#' fitkm <- kmbayes(y = y, Z = Z, modifier = modifier, X = X, iter = 10, verbose = FALSE) 
-#' 
+#' set.seed(111) 
+#' fitkm <- bkmrGS(y ~ h(Log_Lead, Log_Manganese, Log_Arsenic, mod = Sex) +
+#'                           Age + Gestation + Delivery + Birth_order +
+#'                           Education_parent1 + Education_parent2 + Smoking +
+#'                           HOME_emotional + HOME_avoid + HOME_careg + 
+#'                           HOME_env + HOME_play + HOME_stim + 
+#'                           Energy,
+#'                         data = Liu_data, 
+#'                         iter = 10, 
+#'                         verbose = FALSE) 
+#'                         
 #' risks.int <- OverallIntSummaries(fitkm, qs = c(0.25, 0.75), 
 #' q.fixed = 0.5, mod.diff = c("male", "female"), method = "fullpost")
 OverallIntSummaries <- function(fit, y = NULL, Z = NULL, X = NULL,

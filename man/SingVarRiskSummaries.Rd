@@ -23,14 +23,6 @@ SingVarRiskSummaries(
 \arguments{
 \item{fit}{An object containing the results returned by a the \code{kmbayes} function}
 
-\item{y}{a vector of outcome data of length \code{n}.}
-
-\item{Z}{an \code{n}-by-\code{M} matrix of predictor variables to be included in the \code{h} function. Each row represents an observation and each column represents an predictor.}
-
-\item{X}{an \code{n}-by-\code{K} matrix of covariate data where each row represents an observation and each column represents a covariate. Should not contain an intercept column.}
-
-\item{modifier}{a vector categorical values of length \code{n} that may modify the exposure-response associations. Control level ordering by using class \code{factor}, or use default level orders with any vector class.}
-
 \item{which.z}{vector indicating which variables (columns of \code{Z}) for which the summary should be computed}
 
 \item{qs.diff}{vector indicating the two quantiles \code{q_1} and \code{q_2} at which to compute \code{h(z_{q2}) - h(z_{q1})}}
@@ -41,7 +33,7 @@ SingVarRiskSummaries(
 
 \item{method}{method for obtaining posterior summaries at a vector of new points. Options are "approx" and "exact"; defaults to "approx", which is faster particularly for large datasets; see details. Only "exact" is supported now}
 
-\item{sel}{logical expression indicating samples to keep; defaults to keeping the second half of all samples}
+\item{sel}{logical expression indicating samples to keep; defaults to keeping the burin in removed samples}
 
 \item{z.names}{optional vector of names for the columns of \code{z}}
 
@@ -61,20 +53,17 @@ Compute summaries of the risks associated with a change in a single variable in 
 For guided examples and additional information, see vignette(bkmrGSOverview)
 }
 \examples{
-## First generate data set
-y <- ex_data$y
-Z <- ex_data$Z
-modifier <- ex_data$X$Sex
-X_full <- ex_data$X[,-2] #remove Sex from the covariate matrix because it is the modifier
-#create design matrix to account for factor variables, remove the intercept column
-X <- model.matrix(~., data=X_full)[,-1] 
-
-## Fit model 
-## Using only 10 iterations to make example run quickly
-## Typically should use a large number of iterations for inference
-set.seed(111)
-fitkm <- kmbayes(y = y, Z = Z, modifier = modifier, X = X, iter = 10, verbose = FALSE) 
-
+set.seed(111) 
+fitkm <- bkmrGS(y ~ h(Log_Lead, Log_Manganese, Log_Arsenic, mod = Sex) +
+                          Age + Gestation + Delivery + Birth_order +
+                          Education_parent1 + Education_parent2 + Smoking +
+                          HOME_emotional + HOME_avoid + HOME_careg + 
+                          HOME_env + HOME_play + HOME_stim + 
+                          Energy,
+                        data = Liu_data, 
+                        iter = 10, 
+                        verbose = FALSE) 
+                        
 risks.singvar <- SingVarRiskSummaries(fitkm, qs.diff = c(0.25, 0.75), 
 q.fixed = 0.5, m.fixed = "male", method = "exact")
 }

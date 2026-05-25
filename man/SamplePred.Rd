@@ -27,14 +27,6 @@ SamplePred(
 
 \item{mod_new}{optional vector of new modifier values at which to predict new \code{h}, If not specified, defaults to using observed modifier values}
 
-\item{Z}{an \code{n}-by-\code{M} matrix of predictor variables to be included in the \code{h} function. Each row represents an observation and each column represents an predictor.}
-
-\item{X}{an \code{n}-by-\code{K} matrix of covariate data where each row represents an observation and each column represents a covariate. Should not contain an intercept column.}
-
-\item{modifier}{a vector categorical values of length \code{n} that may modify the exposure-response associations. Control level ordering by using class \code{factor}, or use default level orders with any vector class.}
-
-\item{y}{a vector of outcome data of length \code{n}.}
-
 \item{sel}{A vector selecting which iterations of the BKMR fit should be retained for inference. If not specified, will default to keeping every 10 iterations after dropping the first 50\% of samples, or if this results in fewer than 100 iterations, than 100 iterations are kept}
 
 \item{type}{whether to make predictions on the scale of the link or of the response; only relevant for the binomial outcome family}
@@ -51,20 +43,17 @@ Obtains posterior samples of \code{E(Y) = h(Znew) + beta*Xnew} or of \code{g^{-1
 For guided examples, see vignette(bkmrGSOverview)
 }
 \examples{
-## First generate data set
-y <- ex_data$y
-Z <- ex_data$Z
-modifier <- ex_data$X$Sex
-X_full <- ex_data$X[,-2] #remove Sex from the covariate matrix because it is the modifier
-#create design matrix to account for factor variables, remove the intercept column
-X <- model.matrix(~., data=X_full)[,-1] 
-
-## Fit model 
-## Using only 10 iterations to make example run quickly
-## Typically should use a large number of iterations for inference
-set.seed(111)
-fitkm <- kmbayes(y = y, Z = Z, modifier = modifier, X = X, iter = 10, verbose = FALSE) 
-
+set.seed(111) 
+fitkm <- bkmrGS(y ~ h(Log_Lead, Log_Manganese, Log_Arsenic, mod = Sex) +
+                          Age + Gestation + Delivery + Birth_order +
+                          Education_parent1 + Education_parent2 + Smoking +
+                          HOME_emotional + HOME_avoid + HOME_careg + 
+                          HOME_env + HOME_play + HOME_stim + 
+                          Energy,
+                        data = Liu_data, 
+                        iter = 10, 
+                        verbose = FALSE) 
+                        
 med_vals <- apply(Z, 2, median)
 Znew <- matrix(med_vals, nrow = 1)
 mod_new <- "male"

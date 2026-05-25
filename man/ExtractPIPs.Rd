@@ -9,7 +9,7 @@ ExtractPIPs(fit, sel = NULL, z.names = NULL)
 \arguments{
 \item{fit}{An object containing the results returned by a the \code{kmbayes} function}
 
-\item{sel}{logical expression indicating samples to keep; defaults to keeping the second half of all samples}
+\item{sel}{logical expression indicating samples to keep; defaults to keeping the burin in removed samples}
 
 \item{z.names}{optional argument providing the names of the variables included in the \code{h} function.}
 }

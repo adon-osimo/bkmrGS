@@ -2,7 +2,7 @@
 #'
 #' Investigate the impact of the \code{r[m]} parameters on the smoothness of the exposure-response function \code{h(z[m])}.
 #'
-#' @inheritParams kmbayes
+#' @inheritParams bkmrGS
 #' @param ngrid Number of grid points over which to plot the exposure-response function
 #' @param q.seq Sequence of values corresponding to different degrees of smoothness in the estimated exposure-response function. A value of q corresponds to fractions of the range of the data over which there is a decay in the correlation \code{cor(h[i],h[j])} between two subjects by 50\code{\%}.
 #' @param r.seq sequence of values at which to fix \code{r} for estimating the exposure-response function
@@ -87,7 +87,7 @@ InvestigatePrior <- function(y, Z, X, ngrid = 50, q.seq = c(2, 1, 1/2, 1/4, 1/8,
 #' 
 #' Plot the estimated \code{h(z[m])} estimated from frequentist KMR for \code{r[m]} fixed to specific values 
 #' 
-#' @inheritParams kmbayes
+#' @inheritParams bkmrGS
 #' @param fits output from \code{\link{InvestigatePrior}}
 #' @param which.z which predictors (columns in \code{Z}) to plot
 #' @param which.q which q.values to plot; defaults to all possible

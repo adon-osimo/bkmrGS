@@ -1,4 +1,6 @@
 #' Trace plot
+#' 
+#' Fits a trace plot of the given parameter, along with the posterior mean estimate 
 #'
 #' @inheritParams ExtractEsts
 #' @param par which parameter to plot
@@ -9,25 +11,22 @@
 #' @param ... other arguments to pass onto the plotting function
 #' @export
 #' @import graphics
-#' @details For guided examples, see vignette(bkmrGSOverview)
+#' @details For guided examples, see vignette(VignettteDraft)
 #' 
 #' @return No return value, generates plot
 #' 
 #' @examples
-#' ## First generate data set
-#' y <- ex_data$y
-#' Z <- ex_data$Z
-#' modifier <- ex_data$X$Sex
-#' X_full <- ex_data$X[,-2] #remove Sex from the covariate matrix because it is the modifier
-#' #create design matrix to account for factor variables, remove the intercept column
-#' X <- model.matrix(~., data=X_full)[,-1] 
-#' 
-#' ## Fit model 
-#' ## Using only 10 iterations to make example run quickly
-#' ## Typically should use a large number of iterations for inference
-#' set.seed(111)
-#' fitkm <- kmbayes(y = y, Z = Z, modifier = modifier, X = X, iter = 10, verbose = FALSE) 
-#' 
+#' set.seed(111) 
+#' fitkm <- bkmrGS(y ~ h(Log_Lead, Log_Manganese, Log_Arsenic, mod = Sex) +
+#'                           Age + Gestation + Delivery + Birth_order +
+#'                           Education_parent1 + Education_parent2 + Smoking +
+#'                           HOME_emotional + HOME_avoid + HOME_careg + 
+#'                           HOME_env + HOME_play + HOME_stim + 
+#'                           Energy,
+#'                         data = Liu_data, 
+#'                         iter = 10, 
+#'                         verbose = FALSE) 
+#'                         
 #' TracePlot(fit = fitkm, par = "beta")
 #' TracePlot(fit = fitkm, par = "lambda")
 #' TracePlot(fit = fitkm, par = "sigsq.eps")

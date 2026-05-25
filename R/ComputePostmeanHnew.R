@@ -1,7 +1,7 @@
 #' Compute the posterior mean and variance of \code{h} at a new predictor values
 #'
-#' @inheritParams kmbayes
-#' @param fit An object containing the results returned by a the \code{kmbayes} function 
+#' @inheritParams bkmrGS
+#' @param fit An object containing the results returned by a the \code{bkmrGS} function 
 #' @param Znew matrix of new predictor values at which to predict new \code{h}, where each row represents a new observation. If set to NULL then will default to using the observed exposures Z.
 #' @param mod_new vector of new modifier values at which to predict new \code{h}. If set to NULL then will default to using the observed modifiers.
 #' @param method method for obtaining posterior summaries at a vector of new points. Options are "approx" and "exact"; defaults to "approx", which is faster particularly for large datasets; see details. Only "exact" is supported now
@@ -21,7 +21,7 @@
 #' ## Using only 10 iterations to make example run quickly
 #' ## Typically should use a large number of iterations for inference
 #' set.seed(111)
-#' fitkm <- kmbayesWrapper(y ~ h(Log_Lead, Log_Manganese, Log_Arsenic, mod = Sex) +
+#' fitkm <- bkmrGS(y ~ h(Log_Lead, Log_Manganese, Log_Arsenic, mod = Sex) +
 #'                           Age + Gestation + Delivery + Birth_order +
 #'                           Education_parent1 + Education_parent2 + Smoking +
 #'                           HOME_emotional + HOME_avoid + HOME_careg + 
@@ -60,7 +60,7 @@ ComputePostmeanHnew <- function(fit, y = NULL, Z = NULL, X = NULL, modifier = NU
 #' Function to approximate the posterior mean and variance as a function of the estimated model parameters (e.g., tau, lambda, beta, and sigsq.eps)
 #' @param Znew matrix of new predictor values at which to predict new \code{h}, where each row represents a new observation. If set to NULL then will default to using the observed exposures Z.
 #' @param mod_new vector of new modifier values at which to predict new \code{h}. If set to NULL then will default to using the observed modifiers.
-#' @inheritParams kmbayes
+#' @inheritParams bkmrGS
 #' @inheritParams ExtractEsts
 #' @noRd
 ComputePostmeanHnew.approx <- function(fit, y = NULL, Z = NULL, 
@@ -398,7 +398,7 @@ ComputePostmeanHnew.approx <- function(fit, y = NULL, Z = NULL,
 #'
 #' Function to estimate the posterior mean and variance by obtaining the posterior mean and variance at particular iterations and then using the iterated mean and variance formulas
 #' 
-#' @inheritParams kmbayes
+#' @inheritParams bkmrGS
 #' @inheritParams SamplePred
 #' @inheritParams ExtractEsts
 #' 

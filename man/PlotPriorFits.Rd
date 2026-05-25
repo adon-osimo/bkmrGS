@@ -17,12 +17,6 @@ PlotPriorFits(
 )
 }
 \arguments{
-\item{y}{a vector of outcome data of length \code{n}.}
-
-\item{X}{an \code{n}-by-\code{K} matrix of covariate data where each row represents an observation and each column represents a covariate. Should not contain an intercept column.}
-
-\item{Z}{an \code{n}-by-\code{M} matrix of predictor variables to be included in the \code{h} function. Each row represents an observation and each column represents an predictor.}
-
 \item{fits}{output from \code{\link{InvestigatePrior}}}
 
 \item{which.z}{which predictors (columns in \code{Z}) to plot}
