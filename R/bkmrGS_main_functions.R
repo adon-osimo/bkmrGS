@@ -1139,7 +1139,7 @@ summary.bkmrfit <- function(object, q = c(0.025, 0.975), digits = 5, show_ests =
         paste(
           "Low Metropolis Hastings acceptance rates (<20%):",
           paste(low_acc, collapse = ", "),
-          "- chain mixes poorly. Try ?"
+          "- chain mixes poorly. Check the user implimented changes in vignettes(VignetteDraft) for more help"
         )
       )
     }
@@ -1150,7 +1150,7 @@ summary.bkmrfit <- function(object, q = c(0.025, 0.975), digits = 5, show_ests =
         paste(
           "High Metropolis Hastings acceptance rates (>50%):",
           paste(high_acc, collapse = ", "),
-          "- proposals may be too small. Try ?"
+          "- proposals may be too small. Check the user implimented changes in vignettes(VignetteDraft) for more help"
         )
       )
     }
@@ -1208,7 +1208,7 @@ summary.bkmrfit <- function(object, q = c(0.025, 0.975), digits = 5, show_ests =
         paste(
             "Low effective sample size (<500):",
             paste(low_ess, collapse = ", "),
-            "- posterior estimates may be unstable. Check _____ for more help"
+            "- posterior estimates may be unstable. Check the user implimented changes in vignettes(VignetteDraft) for more help"
         )
       )
     }
@@ -1219,7 +1219,7 @@ summary.bkmrfit <- function(object, q = c(0.025, 0.975), digits = 5, show_ests =
         paste(
           "Very low effective sample size (<100):",
           paste(very_low_ess, collapse = ", "),
-          "- convergence is questionable. Check ____ for more help"
+          "- convergence is questionable. Check the user implimented changes in vignettes(VignetteDraft) for more help"
         )
       )
     }
@@ -1230,7 +1230,7 @@ summary.bkmrfit <- function(object, q = c(0.025, 0.975), digits = 5, show_ests =
         paste(
           "Effective sample size is NULL:",
           paste(null_ess, collapse = ", "),
-          "- convergence has not been attained. Check ____ for more help"
+          "- convergence has not been attained. Check the user implimented changes in vignettes(VignetteDraft) for more help"
         )
       )
     }
@@ -1242,7 +1242,7 @@ summary.bkmrfit <- function(object, q = c(0.025, 0.975), digits = 5, show_ests =
       warns,
       paste(
         "Only", n_post,
-        "posterior samples retained; consider running longer chains to achieve a posterior draw size of at least 1000."
+        "posterior samples retained, consider running longer chains to achieve a posterior draw size of at least 1000."
       )
     )
   }
@@ -1250,7 +1250,7 @@ summary.bkmrfit <- function(object, q = c(0.025, 0.975), digits = 5, show_ests =
   if (x$burnin < 0.1 * x$iter) {
     warns <- c(
       warns,
-      "Burn-in is less than 10% of iterations; warmup may be insufficient."
+      "Burn-in is less than 10% of iterations, warmup may be insufficient. "
     )
   }
   
