@@ -23,13 +23,13 @@ Extract samples of each parameter from the BKMR fit
 ## Fit model 
 ## Using only 10 iterations to make example run quickly
 ## Typically should use a large number of iterations for inference
-set.seed(111)
-fitkm <- kmbayesWrapper(y ~ h(Log_Lead, Log_Manganese, Log_Arsenic, mod = Sex) +
+set.seed(111) 
+fitkm <- bkmrGS(y ~ h(Log_Lead, Log_Manganese, Log_Arsenic, mod = Sex) +
                           Age + Gestation + Delivery + Birth_order +
                           Education_parent1 + Education_parent2 + Smoking +
                           HOME_emotional + HOME_avoid + HOME_careg + 
                           HOME_env + HOME_play + HOME_stim + 
-                          Energy, 
+                          Energy,
                         data = Liu_data, 
                         iter = 10, 
                         verbose = FALSE) 
