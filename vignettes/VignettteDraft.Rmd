@@ -2,6 +2,7 @@
 title: "Group Separable BKMR Overview"
 author: "by Danielle Demateis and Adon Osimo"
 output: rmarkdown::html_vignette
+bibliography: references.bib
 vignette: >
   %\VignetteIndexEntry{Group Separable BKMR Overview}
   %\VignetteEncoding{UTF-8}
@@ -44,61 +45,15 @@ Biostatistics article](https://doi.org/10.1093/biostatistics/kxu058) and
 article](https://doi.org/10.1186/s12940-018-0413-y).
 
 Note that while this package is built off the `bkmr` package, it does
-not have all of the functionality of that package. For a standard BKMR
-analysis, please use the standard `bkmr` package. If you are using both
+not have all of the functionality of that package. Currently the 
+`'method = approx'` function argument has not been implemented for all functions
+(see Changing methods in the User implemented changes section for more).  
+If you are using both
 the `bkmr` and `bkmrGS` packages in the same R session, make sure to
 specify the package names when calling functions. For example, you can
 call `bkmr::kmbayes` or `bkmrGS::bkmrGS` to differentiate
 between the functions in the two packages, however you can run standard
 BKMR through `bkmrGS::bkmrGS` by setting `mod = NULL`.
-
-## Standard bkmr
-
-Bayesian Kernel Machine Regression (BKMR) is a flexible framework for
-modeling the health effects of exposure mixtures. It is designed to
-estimate the joint effect of multiple exposures (Z) on an outcome (y),
-while accounting for covariates (X). The standard BKMR model is
-
-$$y_i = h(\mathbf{z_i}) + X_i^T\beta + \epsilon_i, \ \epsilon_i \sim N(0,\sigma^2)$$
-
-where $h(\cdot)$ is an unknown function modeled using a kernel. A common
-choice is the Gaussian kernel with $m \in (1,\dots, M)$ exposure
-variables,
-
-$$K(\mathbf{z_i},\mathbf{z_j}) = \exp\left\{-\sum^M_{m=1}r_m(z_{im}-z_{jm})^2\right\}$$
-
-Intuitively, the kernel function shrinks the estimated health effects of
-two individuals with similar exposure profiles toward each other.
-Standard BKMR assumes that this mixture-response function $h(\cdot)$ is
-the same for all individuals, and does not account for effect
-modification.
-
-## Group Separable BKMR
-
-The Group Separable BKMR framework extends classic BKMR by allowing us
-to explicitly model effect modification. For $i \in (1,\dots, G)$, let
-$w_i$ denote a categorical modifier indicating which group the
-observation belongs to. The model is
-
-$$y_i = h_{w_i}(\mathbf{z_i}) + X_i^T\beta + \epsilon_i$$
-
-Where each group $w$ has its own exposure-response function $h_w(\cdot)$
-
-This is achieved through a group Separable kernel of the form
-
-$$K^{gs}(\mathbf{z_i, z_j}, w_i, w_j, \mathbf{\tau^{gs}, r^{gs}}) =
-\begin{cases}
-\tau^{gs}_{w_i} \cdot \exp\Bigg[ - \sum_{m=1}^M {(z_{im} - z_{jm})^2}{r^{gs}_{m,g}} \Bigg], & \text{if } w_i = w_j, \\
-0, & \text{if } w_i \neq w_j,
-\end{cases}$$
-
-Under this formulation, observations only contribute to the kernel
-within the same group, allowing each group to have a distinct and
-flexible exposure-response surface.
-
-OLD ^^^^^
-
-NEW VVVVVV
 
 ## Standard bkmr
 
@@ -116,7 +71,7 @@ variables,
 $$K(\mathbf{z_i},\mathbf{z_j}, \tau, \mathbf{r}) = \tau\exp\left\{-\sum^M_{m=1}r_m(z_{im}-z_{jm})^2\right\}$$
 
 Standard BKMR uses a global value of $\tau$, which controls the overall variability of the exposure-response function. It also uses a parameter $r$, which determines the contribution of each exposure to the kernel similarity. A larger value of $r_m$ implies a greater influence of exposure $m$ on the estimated exposure-response relationship. Intuitively, the kernel function shrinks the estimated health effects of
-two individuals with similar exposure profiles toward each other.
+two individuals with similar exposure profiles toward each other [@bobb2015].
 
 Standard BKMR assumes that this mixture-response function $h(\cdot)$ is
 the same for all individuals, and does not account for effect
@@ -138,7 +93,7 @@ The standard kernel and group separable kernel functions look very similar, stil
 within the same group, allowing each group to have a distinct and
 flexible exposure-response surface.
 
-[Does changing $K^{gs}$ to $K_g$ hinder the theme of both $\tau^{gs}, r^{gs}$?]
+[Does changing $K^{gs}$ to $K_g$ hinder the theme of both $\tau^{gs}, r^{gs}$? I know that this emphasizes the importance of the group being $g$]
 
 ## When to use Group Seperable BKMR and benefits of doing so
 
@@ -248,7 +203,7 @@ the `bkmrGS()` function. First load the data set:
 data("Liu_data")
 ```
 
-In this data from the Liu et al. 2021 [add citation here] paper set we
+In this data from the @liu2021 paper we
 have
 
 -   `y` is the response (neurodevelopment score, BSID-III)
@@ -317,7 +272,7 @@ arguments
 More information about `gs.tau`, `gs.sig`, `est.h` please check their respective help
 files. Other parameters (`id`, `starting.values`, `control.params`,
 `varsel`, `groups`, `knots`, `ztest` and `rmethod`) are reused from the
-standard `bkmr` package. Here we can see
+standard `bkmr` package [@bkmr_overview]. Here we can see
 
 ```{r}
 set.seed(111) #for consistency in demonstration
@@ -353,10 +308,8 @@ be show if we have fewer than 1000 posterior draws, since small
 posterior samples may lead to unstable estimates. The other warning is
 indicated if the burn-in period is less than 10% of the total
 iterations, meaning it might not have reached it's stationary
-distribution yet.
-
-Ideally I want to add a Try to each Warning, that way the user can try
-to do something about each issue. Just not sure about the wording yet.
+distribution yet. See [Model
+Checking](#model-checking) for more details and trouble shooting.
 
 ## Model Checking {#model-checking}
 
@@ -365,9 +318,8 @@ function. This function asks you to specify the parameter with the `par`
 argument and returns a line plot showing the sampled values of that parameter across MCMC iterations, along with the parameter's posterior mean displayed in orange. These trace plots should exhibits rapid up and down variation
 with no long-term trends or drifts. This indicates that your estimates
 have converged. Long-term trends or drifts in the plot indicate slower
-convergence, poor convergence, or no convergence at all. See [insert
-section here for where to go] for more details and trouble shooting
-(should I add a new section in the User Implimented Changes? ).
+convergence, poor convergence, or no convergence at all. See [Model
+Checking](#model-checking) for more details and trouble shooting.
 
 ```{r, fig.width=8, fig.height=8}
 par(mfrow = c(2, 2))
@@ -396,17 +348,15 @@ Acceptance rates vary from problem to problem, but should not be close
 to either 0 nor 1. A common rule of thumb is that the acceptance rates
 for both $r$ and $\lambda$ should ideally be between 0.2 and 0.5.
 Consider changing hyperparameters if acceptance rates are too high or
-too low. See <https://jenfb.github.io/bkmr/overview.html> for more
+too low. See @bkmr_overview for more
 details.
 
 ## Model Output {#model-output}
 
 After reviewing our model to ensure proper mixing, and checking it's
 acceptance rates, we can move on to reviewing the model output. Here if
-we call the `GetEsts` function it will give us estimates for each of our
-model parameters as well as quantiles for those estimates. Similarly we
-can use `GetSamps` to get and view all the samples our MCMC algorithm
-decided to keep at each point
+we call the `ExtractEsts` function it will give us estimates for each of our
+model parameters as well as quantiles for those estimates.
 
 ```{r}
 ExtractEsts(fitkm, par = "beta", digits = 2)
@@ -415,13 +365,26 @@ ExtractEsts(fitkm, par = "lambda", digits = 2)
 ExtractEsts(fitkm, par = "r", digits = 2)
 ```
 
-Add information about seeing warnings and what to do about them, once I
-figure out which warnings and what those warnings will say in the model
-output section
+Similarly we
+can use `ExtractSamps` to get and view all the samples our MCMC algorithm
+decided to keep at each point
+
+```{r}
+samps <- ExtractSamps(fitkm, par = "beta")
+head(samps)
+```
+
+Both functions take in a `par` argument, which indicates which parameter values to return. It is set `par = NULL` at default, and will return every parameter unless otherwise specified. 
 
 ## Exposure-Response Relationship {#exposure-response-relationships}
 
 ### Univariate exposure-response functions {#univariate}
+
+I am still working on these sections, I guess I was a little confused as to what this reduction would look like. Would  I create
+A new function that combines all the exposure-response relationships into one? Or just all the Overall vs Singular and Risk vs Interaction? 
+Should it be one mega function? I guess when I left the meeting I thought I understood it but Im not as sure anymore. 
+All of the functions in this section are run based off of ComputeMeanHnew just with different input parameters and over different values
+
 
 To plot the estimated exposure-response function for each group, use the
 `PredictorResponseUnivar()` function. This function takes a fit object
@@ -717,33 +680,20 @@ ggplot(single_exp_btwn, aes(x="", y = est, ymin = est - 1.96*sd,
   ylab("Difference in association \n (per IQR change) with BSID-III \n between girls and boys")
 ```
 
-# User implemented changes
+# User Implemented Changes
 
-## Changing the tuning parameters?
-
-Should I keep this? Check bkmr's for this
-
-## Changing the priors
-
-Our package allows users to modify prior distributions for the model
-parameters. Prior specification can be updated through the
-`control.params` argument. Priors can be explored using the
-`InvestigatePriors()` function, which allows users to visualize the
-implied distributions under different hyperparameter choices. After
-specifying alternative priors, the `PlotPriorFits()` function can be
-used to visualize how these choices influence the implied
-exposure-response relationships.
-
-## Changing the methods
+## How to Change Estimation Methods
 
 Several functions in `bkmrGS` include a `method` argument that controls
 how risk summaries are computed. Different methods may vary in
 computational cost and the degree of approximation used. Specifically,
-all of our exposure-response variables have the `method` argument, which
+all of our exposure-response functions have the `method` argument, which
 can be `approx`, `exact`, or `fullpost`. The default for this is
-`method = approx` which uses a Gaussian process approximation based on
+changes depending on the function (check the help fuile for each function if 
+you need the default). When `method = approx`, the function uses a 
+Gaussian process approximation based on
 posterior mean and variance estimates. This reduces the computational
-burden slightly and scales better when many prediction points. If you
+burden slightly and scales better when there are many prediction points. If you
 changed this to `method = exact` we see that the function is evaluated
 using a full Gaussian process. It also uses the exact covariance
 structure at the posterior mean parameter estimates. This is more
@@ -755,13 +705,10 @@ Gaussian process. Finally the `method = fullpost` is only available for
 each MCMC iteration, and then summarizes these predictions across
 posterior samples.
 
-We also have a `kernel.method` call in the `bkmrGS` function
+The function `bkmrGS()` also has a `kernel.method` call,
 which allows the user to run either standard BKMR if
 `kernel.method = "one"` or group separable BKMR if
-`kernel.method = "two"`. Now that I write this out, I am not sure that I
-really need to include this in the final function, as my wrapper allows
-the user to input $h()$ with no modifier and run standard BKMR. I will
-look into this more.
+`kernel.method = "two"`. Note that if you include a modifier you should be running  `kernel.method = "two"`, and that if you don't include a modifier `kernel.method = "one"` is set automatically. 
 
 For example, in functions such as `OverallRiskSummaries()` and
 `SingVarRiskSummaries()`, the argument `method = "exact"` computes risk
@@ -772,7 +719,53 @@ approximations to reduce computation time. These approaches can be
 useful for large data sets or when rapid exploratory analysis is
 desired, but may introduce additional variability or bias.
 
-Explicitly defining the difference between `method = "one"` and
-`method = "two"` and such.
+## How to Change the Tuning Parameters
 
-## Checking Model Convergence
+The BKMR model is fit using Markov Chain Monte Carlo, therefore most of the parameters are updated using a Gibbs step. The $r_m$ and $\lambda$ parameters, however are updated using a Metropolis-Hastings step. We used a gamma proposal distribution with mean equal to the current value. 
+
+If your acceptance rates are too high (an acceptance rate higher than 50\%) this could lead to a slow mixing chain. If your acceptance rates are too low (an acceptance rate lower than 20\%), that could prevent the algorithm from properly exploring the parameter space. Thus it is essential for any MCMC to have good acceptance rates. Generally, these acceptance rate can be changed through the `control.params` argument. If you are running standard BKMR, then you will only see a list of 1 value per parameter, but if you are running group-seperable bkmr, then you can change the tuning parameter per group. Here is the list of tuning parameters and thier starting values
+
+```{r}
+data.frame(fitkm$control.params)
+```
+
+Any value that ends in a `.jump` or `.muprop` is a tuning parameter and can be changed. For more information see @bkmr_overview
+
+## How to Change the Priors
+
+Our package also allows users to modify prior distributions for the model
+parameters. Prior specification can be updated again through the
+`control.params` argument. Priors can be explored using the
+`InvestigatePriors()` function, which allows users to visualize the
+implied distributions under different hyperparameter choices. After
+specifying alternative priors, the `PlotPriorFits()` function can be
+used to visualize how these choices influence the implied
+exposure-response relationships. Here is the list of prior hyperparameters and their starting values
+
+```{r}
+data.frame(fitkm$control.params)
+```
+
+Any value that does not end in a `.jump` or `.muprop` is a prior parameter and can be changed. For more information see @bkmr_overview
+
+## How to Handle Poor Mixing Results
+
+Model convergence is essential when dealing with any form of Monte Carlo Markov Chain estimation. This allows us to be confident in our estimates, as our algorithm has stabilized around an optimal state. A few ways to test model convergence are through the `TracePlot` function and the effective sample size (`ess`) return when calling summary on a `bkmrGS` object. 
+
+To check the effectiveness of your sampling, a trace plot is ideal. Like we talked about in the Model Checking Section, we want to see no obvious trends (post burn in) and a rapid up and down variation with no drifts. If this is not the case, either increase the number number of samples (try `iter = 1500,...,burnin = 500` in the `bkmrGS()` call or larger) or adjust the tuning parameters. 
+
+If your effective sample size is too low, this indicates your chains are producing highly correlated estimates, and it is taking a long time to explore your parameter space. You would know if your effective sample size is too low if the summary produces a warning. If this is the case, either try increasing the number of samples (try `iter = 1500, ... , burnin = 500` in the `bkmrGS()` call or larger), adjusting the tuning parameters, or thinning. Thinning is the process of saving every $n$-th iteration instead of saving every iteration. Typically, increasing iterations or improving mixing is generally preferable to thinning.
+
+[I should probably add a call for this somewhere in the function, like `thin = _`]
+
+# References
+
+
+
+
+
+
+
+
+
+
