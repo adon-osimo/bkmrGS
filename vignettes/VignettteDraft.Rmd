@@ -1,7 +1,7 @@
 ---
 title: "Group Separable BKMR Overview"
 author: "by Danielle Demateis and Adon Osimo"
-output: rmarkdown::html_vignette
+output: 
 bibliography: references.bib
 vignette: >
   %\VignetteIndexEntry{Group Separable BKMR Overview}
@@ -123,7 +123,7 @@ y <- Liu_data$y
 X <- Liu_data$Age
 Z <- as.matrix(Liu_data[2:4])
 #fit bkmr::kmbayes and get a plotable object
-bkmr_model <- bkmr::kmbayes(y, Z, X, iter = 10, verbose = FALSE)
+bkmr_model <- bkmr::kmbayes(y, Z, X, iter = 1000, verbose = FALSE)
 bkmr_input <- bkmr::PredictorResponseUnivar(fit = bkmr_model)
 std_bkmr_plot <- ggplot(bkmr_input, aes(z, est, ymin = est - 1.96*se, ymax = est + 1.96*se)) + 
     geom_smooth(stat = "identity") + 
@@ -133,7 +133,7 @@ std_bkmr_plot <- ggplot(bkmr_input, aes(z, est, ymin = est - 1.96*se, ymax = est
 #fit bkmrGS::bkmrGS and get a plotable object
 bkmrGS_model <- bkmrGS(y ~ h(Log_Lead, Log_Manganese, Log_Arsenic, mod = Sex) + Age, 
                           data = Liu_data,
-                          iter = 10, 
+                          iter = 1000, 
                           verbose = FALSE) 
 bkmrgs_input <- PredictorResponseUnivar(fit = bkmrGS_model, 
                                             method = "exact",
@@ -226,9 +226,7 @@ head(Liu_data)
 
 ## Model Fitting {#model-fitting}
 
-Now fit the model with the `bkmrGS()` function. The
-following example uses 10 MCMC iterations, but it is important to use
-ample MCMC iterations. Typically, we would like to see at least 1,000
+Now fit the model with the `bkmrGS()` function. Typically, we would like to see at least 1,000
 usable iterations, but this largely depends on your effective sample
 size and model convergence. To check model convergence, see [Model
 Checking](#model-checking). Here, `bkmrGS()` takes the
@@ -283,7 +281,7 @@ fitkm <- bkmrGS(y ~ h(Log_Lead, Log_Manganese, Log_Arsenic, mod = Sex) +
                           HOME_env + HOME_play + HOME_stim + 
                           Energy, #entire model in a GAM style
                           data = Liu_data, #data frame
-                          iter = 10, #MCMC iterations
+                          iter = 1000, #MCMC iterations
                           verbose = FALSE) #controls output during fitting
 
 ```
@@ -484,7 +482,7 @@ total_mix_gs_tmp <- OverallRiskSummaries(fitkm,
                                          qs = c(0.25, 0.5, 0.75),
                                          q.fixed = 0.5,
                                          m.fixed = "female",
-                                         sel = 5:10,
+                                         sel = 500:1000,
                                          method = "exact")
 total_mix_gs_tmp$modifier <- rep("female", nrow(total_mix_gs_tmp))
 total_mix_gs_df <- rbind(total_mix_gs, total_mix_gs_tmp)
@@ -554,7 +552,7 @@ single_exp_gs_tmp <- SingVarRiskSummaries(fitkm,
                                             qs.diff = c(0.25, 0.75),
                                             q.fixed = 0.5,
                                             m.fixed = "female",
-                                            sel = 5:10,
+                                            sel = 500:1000,
                                             method = "exact")
 single_exp_gs_tmp$modifier <- rep("female",nrow(single_exp_gs_tmp))
 single_exp_gs_df <- rbind(single_exp_gs, single_exp_gs_tmp)
@@ -596,7 +594,7 @@ difference in the estimated mixture effect between two modifier levels
 at specified quantiles of the exposure distribution. This function takes
 an argument `fit` which is an object from `bkmrGS`, the argument
 `mod.diff = c("male", "female")` indicates that the estimated
-differences correspond to female minus male, the argument `sel = 5:10`
+differences correspond to female minus male, the argument `sel = 500:1000`
 specifies which posterior samples from the fitted model are used when
 computing the summaries. Positive values therefore indicate a stronger
 association in females, while negative values indicate a stronger
@@ -609,7 +607,7 @@ total_mix_btwn <- OverallIntSummaries(fitkm,
                                              qs = c(0.25, 0.5, 0.75),
                                              q.fixed = 0.5,
                                              mod.diff = c("male", "female"), #female - male
-                                             sel = 5:10,
+                                             sel = 500:1000,
                                              method = "exact")
 print(total_mix_btwn)
 ```
