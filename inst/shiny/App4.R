@@ -28,12 +28,6 @@ ui <- fluidPage(
         choices = c("Overall", "Group Specific")
       ),
       
-      checkboxInput(
-        "show_code",
-        "Display Code",
-        value = FALSE
-      ),
-      
       uiOutput("modifier_controls"),
       
       actionButton(
@@ -44,38 +38,41 @@ ui <- fluidPage(
       actionButton(
         "go",
         "Create Full Plot"
-      ),
-      
-      checkboxInput(
-        "show_results",
-        "Display Full Results",
-        value = FALSE
       )
       
     ),
     
     mainPanel(
       
-      h3("Preview Plot"),
-      plotOutput("preview"),
-      
-      h3("Full Plot"),
-      plotOutput("full"),
-      
-      conditionalPanel(
-        condition = "input.show_code == TRUE",
-        h3("Generated Code"),
-        tags$pre(
-          verbatimTextOutput("generated_code")
+      tabsetPanel(
+        
+        tabPanel(
+          "Preview Plot",
+          br(),
+          plotOutput("preview")
+        ),
+        
+        tabPanel(
+          "Full Plot",
+          br(),
+          plotOutput("full")
+        ),
+        
+        tabPanel(
+          "Generated Code",
+          br(),
+          tags$pre(
+            verbatimTextOutput("generated_code")
+          )
+        ),
+        
+        tabPanel(
+          "Results",
+          br(),
+          tableOutput("results_table")
         )
-      ),
-      
-      conditionalPanel(
-        condition = "input.show_results == TRUE",
-        h3("Results"),
-        tableOutput("results_table")
+        
       )
-      
     )
   )
 )
@@ -198,13 +195,10 @@ server <- function(input, output, session){
   
   output$generated_code <- renderText({
     
-    req(input$show_code)
-    
     generated_code()
   })
   
   output$results_table <- renderTable({
-    req(input$show_results)
     
     env <- plot_env()
     env$results
