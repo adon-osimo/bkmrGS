@@ -28,7 +28,11 @@ ui <- fluidPage(
         choices = c("Overall", "Group Specific")
       ),
       
-      uiOutput("modifier_controls"),
+      uiOutput("comparison_Overall"),
+      uiOutput("movement_Overall"),
+      uiOutput("movement_GS"),
+      uiOutput("comparison_Single_1"),
+      uiOutput("comparison_Single_2"),
       
       actionButton(
         "prev",
@@ -101,39 +105,148 @@ server <- function(input, output, session){
     
   })
   
-  output$modifier_controls <- renderUI({
+  output$comparison_Overall <- renderUI({
     
     req(fit())
     
-    if(is.null(fit()$modifier))
-      return(helpText("No modifier found in fit object."))
+    if(is.null(fit()$modifier)){
+      return(NULL)
+    }
+    
+    if(input$comparison == "Single"){
+      return(NULL)
+    }
     
     tagList(
       
-      selectInput(
-        "m.fixed",
-        "Fixed Modifier",
-        choices = unique(as.character(fit()$modifier))
-      ),
-      
       numericInput(
         "q.fixed",
-        "Quantile Fixed At",
+        "(q.fixed) Quantile Fixed At",
         value = 0.5,
         min = 0,
         max = 1,
         step = 0.05
       ),
-      
+    
       textInput(
         "qs",
-        "Comparison Quantiles (e.g. c(0.25, 0.5, 0.75) or seq(0.25, 0.75, by = 0.05))",
+        "(qs) Comparison Quantiles (e.g. c(0.25, 0.5, 0.75) or seq(0.25, 0.75, by = 0.05))",
         value = "seq(0.25, 0.75, by = 0.05)"
+      )
+    )
+    
+  })
+  
+  output$movement_Overall <- renderUI({
+    
+    req(fit())
+    
+    if(is.null(fit()$modifier)){
+      return(NULL)
+    }
+    
+    if(input$movement == "Group Specific"){
+      return(NULL)
+    }
+    
+    tagList(
+      
+      selectInput(
+        "m.fixed",
+        "(m.fixed) Fixed Modifier",
+        choices = unique(as.character(fit()$modifier))
       )
       
     )
     
   })
+  
+  output$movement_GS <- renderUI({
+    
+    req(fit())
+    
+    if(is.null(fit()$modifier)){
+      return(NULL)
+    }
+    
+    if(input$movement == "Overall"){
+      return(NULL)
+    }
+    
+    tagList(
+      
+      textInput(
+        "mod.diff",
+        "(mod.diff) Modifier Values to Compare (e.g. c('Group_1', 'Group_2'))",
+        value = "c('', '')"
+      )
+      
+    )
+    
+  })  
+  
+  output$comparison_Single_1 <- renderUI({
+    
+    req(fit())
+    
+    if(is.null(fit()$modifier)){
+      return(NULL)
+    }
+    
+    if(!(input$movement == "Overall" && input$comparison == "Single")){
+      return(NULL)
+    }
+    
+    tagList(
+      
+      textInput(
+        "qs.diff",
+        "(qs.diff) Quantiles to Compare",
+        value = "c(0.25, 0.75)"
+      ), 
+      
+      numericInput(
+        "q.fixed",
+        "(q.fixed) Quantile Fixed At",
+        value = 0.5,
+        min = 0,
+        max = 1,
+        step = 0.05
+      )
+      
+    )
+    
+  }) 
+  
+  output$comparison_Single_2 <- renderUI({
+    
+    req(fit())
+    
+    if(is.null(fit()$modifier)){
+      return(NULL)
+    }
+    
+    if(!(input$movement == "Group Specific" && input$comparison == "Single")){
+      return(NULL)
+    }
+    
+    tagList(
+      
+      textInput(
+        "qs.diff",
+        "(qs.diff) Quantiles to Compare",
+        value = "c(0.25, 0.75)"
+      ), 
+      
+      textInput(
+        "qs.fixed",
+        "(qs.fixed) Quantiles to Be Fixed",
+        value = "c(0.5, 0.5)"
+      )
+      
+    )
+    
+  }) 
   
   #---------------------------------------
   # Generate code
@@ -148,7 +261,10 @@ server <- function(input, output, session){
       sel = '5:10',
       m.fixed = input$m.fixed,
       qs = input$qs,
-      q.fixed = input$q.fixed
+      q.fixed = input$q.fixed,
+      qs.diff = input$qs.diff, 
+      mod.diff = input$mod.diff, 
+      qs.fixed = input$qs.fixed
     )
   })
   
@@ -163,7 +279,10 @@ server <- function(input, output, session){
       centered = input$centered,
       m.fixed = input$m.fixed,
       qs = input$qs,
-      q.fixed = input$q.fixed
+      q.fixed = input$q.fixed,      
+      qs.diff = input$qs.diff, 
+      mod.diff = input$mod.diff, 
+      qs.fixed = input$qs.fixed
     )
   })
   
