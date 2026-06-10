@@ -8,12 +8,17 @@ generate_code <- function(
     sel = "NULL",
     m.fixed = NULL,
     qs = NULL,
-    q.fixed = NULL){
+    q.fixed = NULL,
+    qs.diff = NULL,
+    mod.diff = NULL,
+    qs.fixed = NULL){
   
   
   code <- c(
     build_header(comparison, movement),
     build_data_extract(fit_name),
+    build_user_changeable_data(comparison, movement, m.fixed, qs, q.fixed,
+                               qs.diff, mod.diff, qs.fixed),
     build_prediction_function(sel),
     build_summary_function(comparison),
     build_point_constructor(comparison, movement, m.fixed, qs, q.fixed),
@@ -34,14 +39,49 @@ build_header <- function(
 
 build_data_extract <- function(fit_name){
   c("#Update this line with the name of your bkmrfit object!!",
-    paste0("fit <- ", fit_name),
+    paste0("fit <- ", fit_name, ""),
     "#Change this if you want a different Z",
-    "y <- fit$y",
     "Z <- fit$Z",
     "#Change this if you want a different X",
-    "X <- fit$X",
-    "#Change this if you want a different modifier",
-    "modifier <- fit$modifier")
+    "X <- fit$X")
+}
+
+build_user_changeable_data <- function(comparison, movement, m.fixed, qs, q.fixed,
+                                       qs.diff, mod.diff, qs.fixed){
+  ret <- c("#ALL OF THESE ARE CHANGEABLE AT YOUR DISCRESION",
+           "#BE SURE THAT WHEN YOU RUN THIS CODE YOU UPDATE THE FOLLOWING LINES",
+           "#TO REFLECT WHAT VALUES YOU WANT TO SEE")
+  
+  if(comparison == "Overall"){
+    ret <- c(ret, c(paste0("qs <- ", as.character(qs), " "),
+                    paste0("q.fixed <- ", as.character(q.fixed), " ")))
+  }
+  
+  if (movement == "Overall"){
+    ret <- c(ret, c(paste0("m.fixed <- '", as.character(m.fixed), "' ")))
+  }
+  
+  if(movement == "Single"){
+    ret <- c(ret, c(paste0("mod.diff", as.character(mod.diff), " ")))
+  }
+  
+  if(comparison == "Single"){
+    ret <- c(ret, c(paste0("qs.diff <-", as.character(qs.diff), " ")))
+    
+    if(movement == "Overall"){
+      ret <- c(ret, c(paste0("q.fixed <- ", as.character(q.fixed), " ")))
+    }
+    
+    else {
+      ret <- c(ret, c(paste0("qs.fixed <- ", as.character(qs.fixed), " ")))
+    }
+  }
+  
+  ret <- c(ret, c("#THE REST OF THIS CODE IS JUST RUNNABLE, DO NOT EDIT",
+                  "#ANY CODE BETWEEN NOW AND plot_obj"))
+  
+  ret
+
 }
 
 build_prediction_function <- function(sel){
@@ -137,6 +177,7 @@ build_point_constructor <- function(comparison, movement, m.fixed, qs, q.fixed){
       
       ret <- c(ret, c(
         "# Construct comparison points",
+        "point1 <- apply(Z_for_quants, 2, quantile, q.fixed)",
         paste0("qs <- ", as.character(qs), ""),
         "",
         paste0("q.fixed <-", as.character(q.fixed)),
@@ -286,7 +327,6 @@ build_iteration_engine <- function(comparison, movement){
     
     c(
       "# Run Overall Overall analysis",
-      " point1 <- apply(Z_for_quants, 2, quantile, q.fixed)",
       "tmp_fn <- function(q) {",
       "",
       "  point2 <- apply(Z_for_quants, 2, quantile, q)",
