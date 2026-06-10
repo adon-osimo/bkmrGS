@@ -96,8 +96,6 @@ PredictorResponseUnivarVar <- function(whichz = 1, fit, y, Z, X, modifier, metho
 
 #' Plot univariate predictor-response function on a new grid of points
 #' 
-#' Plot univariate predictor-response function on a new grid of points
-#' 
 #' @inheritParams bkmrGS
 #' @inheritParams ExtractEsts
 #' @inheritParams SingVarRiskSummaries
@@ -265,8 +263,6 @@ PredictorResponseBivarPair <- function(fit, y = NULL, Z = NULL, X = NULL,
     res <- dplyr::tibble(z1 = z1save, z2 = z2save, est = preds.plot, se = se.plot)
 }
 
-#' Predict the exposure-response function at a new grid of points
-#'
 #' Predict the exposure-response function at a new grid of points
 #'
 #' @inheritParams bkmrGS
