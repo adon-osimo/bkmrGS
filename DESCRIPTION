@@ -35,7 +35,9 @@ Imports:
     MASS,
     mvtnorm,
     tmvtnorm,
-    tibble
+    tibble,
+    shiny,
+    bslib
 RoxygenNote: 7.3.3
 Suggests: 
     knitr,
