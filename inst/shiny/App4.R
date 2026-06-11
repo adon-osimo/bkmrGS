@@ -187,7 +187,7 @@ server <- function(input, output, session){
       textInput(
         "mod.diff",
         "(mod.diff) Modifier Values to Compare (e.g. c('Group_1', 'Group_2'))",
-        value = "c('', '')"
+        value = paste0("c('", unique(as.character(fit()$modifier))[1], "' ,'", unique(as.character(fit()$modifier))[2], "' )")
       )
       
     )
@@ -267,7 +267,7 @@ server <- function(input, output, session){
       comparison = input$comparison,
       movement = input$movement,
       centered = input$centered,
-      sel = '5:10',
+      sel = '1:10',
       m.fixed = input$m.fixed,
       qs = input$qs,
       q.fixed = input$q.fixed,
