@@ -3,7 +3,7 @@
 generate_code <- function(
     fit_name = "fitkm",
     comparison = "Overall",
-    movement = "Overall",
+    movement = "Group Specific",
     centered = FALSE,
     sel = "NULL",
     m.fixed = NULL,
@@ -20,7 +20,7 @@ generate_code <- function(
     build_user_changeable_data(comparison, movement, m.fixed, qs, q.fixed,
                                qs.diff, mod.diff, qs.fixed),
     build_prediction_function(sel),
-    build_summary_function(comparison),
+    build_summary_function(movement),
     build_point_constructor(comparison, movement, m.fixed, qs, q.fixed),
     build_iteration_engine(comparison, movement),
     build_output_formatter(comparison, movement),
@@ -43,7 +43,9 @@ build_data_extract <- function(fit_name){
     "#Change this if you want a different Z",
     "Z <- fit$Z",
     "#Change this if you want a different X",
-    "X <- fit$X")
+    "X <- fit$X",
+    "#y <- fit$y",
+    "#modifier <- fit$modifier")
 }
 
 build_user_changeable_data <- function(comparison, movement, m.fixed, qs, q.fixed,
@@ -57,18 +59,18 @@ build_user_changeable_data <- function(comparison, movement, m.fixed, qs, q.fixe
                     paste0("q.fixed <- ", as.character(q.fixed), " ")))
   }
   
-  if (movement == "Overall"){
+  if (movement == "Group Specific"){
     ret <- c(ret, c(paste0("m.fixed <- '", as.character(m.fixed), "' ")))
   }
   
-  if(movement == "Single"){
-    ret <- c(ret, c(paste0("mod.diff", as.character(mod.diff), " ")))
+  if(movement == "Between Groups"){
+    ret <- c(ret, c(paste0("mod.diff <- ", as.character(mod.diff), " ")))
   }
   
   if(comparison == "Single"){
     ret <- c(ret, c(paste0("qs.diff <-", as.character(qs.diff), " ")))
     
-    if(movement == "Overall"){
+    if(movement == "Group Specific"){
       ret <- c(ret, c(paste0("q.fixed <- ", as.character(q.fixed), " ")))
     }
     
@@ -87,18 +89,18 @@ build_user_changeable_data <- function(comparison, movement, m.fixed, qs, q.fixe
 build_prediction_function <- function(sel){
   c("preds.fun <- function(znew, modnew) { #do not comment out this line",
     "ComputePostmeanHnew(fit = fit,",
-    "y = y,",
+    "y = fit$y,",
     "Z = Z,",
     "X = X,",
-    "modifier = modifier,",
+    "modifier = fit$modifier,",
     "Znew = znew,",
     "mod_new = modnew,",
     paste0("sel = ", as.character(sel), ","),
     "method = 'exact')}")
 }
 
-build_summary_function <- function(comparison){
-  if(comparison == "Overall"){
+build_summary_function <- function(movement){
+  if(movement == "Group Specific"){
     
     c(
       "# Overall summary function",
@@ -106,31 +108,17 @@ build_summary_function <- function(comparison){
       "",
       "  cc <- c(-1, 1)",
       "  newz <- rbind(point1, point2)",
-      "",
       "  preds <- preds.fun(newz, modnew)",
       "",
-      "  if('matrix' %in% class(preds)) {",
+      "  diff <- drop(cc %*% preds$postmean)",
+      "  diff.sd <- drop(sqrt(cc %*% preds$postvar %*% cc))",
       "",
-      "    post_samp <- preds %*% matrix(cc, ncol = 1)",
-      "",
-      "    c(",
-      "      est = mean(post_samp),",
-      "      lb = quantile(post_samp, 0.025),",
-      "      ub = quantile(post_samp, 0.975)",
-      "    )",
-      "",
-      "  } else {",
-      "",
-      "    diff <- drop(cc %*% preds$postmean)",
-      "    diff.sd <- drop(sqrt(cc %*% preds$postvar %*% cc))",
-      "",
-      "    c(est = diff, sd = diff.sd)",
-      "  }",
+      "  c(est = diff, sd = diff.sd)",
       "}",
       ""
     )
   
-  } else if(comparison == "Single") {
+  } else if(movement == "Between Groups") {
   
   c(
     "# Interaction summary function",
@@ -143,23 +131,10 @@ build_summary_function <- function(comparison){
     "",
     "  cc <- c(-1 * c(-1, 1), c(-1, 1))",
     "",
-    "  if('matrix' %in% class(preds)) {",
+    "  int <- drop(cc %*% preds$postmean)",
+    "  int.sd <- drop(sqrt(cc %*% preds$postvar %*% cc))",
     "",
-    "    post_samp <- preds %*% matrix(cc, ncol = 1)",
-    "",
-    "    c(",
-    "      est = mean(post_samp),",
-    "      lb = quantile(post_samp, 0.025),",
-    "      ub = quantile(post_samp, 0.975)",
-    "    )",
-    "",
-    "  } else {",
-    "",
-    "    int <- drop(cc %*% preds$postmean)",
-    "    int.sd <- drop(sqrt(cc %*% preds$postvar %*% cc))",
-    "",
-    "    c(est = int, sd = int.sd)",
-    "  }",
+    "  c(est = int, sd = int.sd)",
     "}",
     ""
     )
@@ -171,30 +146,12 @@ build_point_constructor <- function(comparison, movement, m.fixed, qs, q.fixed){
   
   ret <- c()
   
-  if(comparison == "Overall"){
+  if(movement == "Group Specific"){
     
-    if(movement == "Overall"){
-      
-      ret <- c(ret, c(
-        "# Construct comparison points",
-        "point1 <- apply(Z_for_quants, 2, quantile, q.fixed)",
-        paste0("qs <- ", as.character(qs), ""),
-        "",
-        paste0("q.fixed <-", as.character(q.fixed)),
-        "",
-        paste0("m.fixed <- '", as.character(m.fixed), "'"),
-        ""
-      ))
-      
-    }
-    
-    if(movement == "Group Specific"){
+    if(comparison == "Overall"){
       
       ret <- c(ret, c(
         "# Single-variable Overall settings",
-        "qs.diff <- c(0.25, 0.75)",
-        "q.fixed <- c(0.25, 0.50, 0.75)",
-        "",
         "which.z <- 1:ncol(Z)",
         "z.names <- colnames(Z)",
         ""
@@ -208,7 +165,7 @@ build_point_constructor <- function(comparison, movement, m.fixed, qs, q.fixed){
     "",
     "if(!is.null(m.fixed)) {",
     "  modnew <- matrix(rep(m.fixed, 2), ncol = 1)",
-    "  Z_for_quants <- Z[modifier == m.fixed, , drop = FALSE]",
+    "  Z_for_quants <- Z[fit$modifier == m.fixed, , drop = FALSE]",
     "} else {",
     "  modnew <- NULL",
     "  Z_for_quants <- Z",
@@ -216,7 +173,7 @@ build_point_constructor <- function(comparison, movement, m.fixed, qs, q.fixed){
     ""))
   }
   
-  if(comparison == "Single"){
+  if(movement == "Between Groups"){
   
     ret <- c(ret, c("Z_support <- function(Z, mod.diff, modifier){",
     "  mins <- c()",
@@ -237,15 +194,10 @@ build_point_constructor <- function(comparison, movement, m.fixed, qs, q.fixed){
     "  return(Z_for_quants)",
     "}"))
     
-    if(movement == "Group Specific"){
+    if(comparison == "Single"){
       
       ret <- c(ret, c(
         "# Interaction settings",
-        "qs.diff <- c(0.25, 0.75)",
-        "qs.fixed <- c(0.25, 0.75)",
-        "",
-        "#YOU NEED TO CHANGE THIS TO YOUR SPECIFIED MODIFIER VALUE c('column_name_1', 'column_name_2') ",
-        "mod.diff <- NULL",
         "",
         "which.z <- 1:ncol(Z)",
         "z.names <- colnames(Z)",
@@ -254,79 +206,30 @@ build_point_constructor <- function(comparison, movement, m.fixed, qs, q.fixed){
       
     }
     
-    if(movement == "Overall"){
-      ret <- c(ret,     c(
-        "# Overall interaction settings",
-        "qs <- seq(0.25, 0.75, by = 0.05)",
-        "q.fixed <- 0.5",
-        "",
-        "#YOU NEED TO CHANGE THIS TO YOUR SPECIFIED MODIFIER VALUE c('column_name_1', 'column_name_2') ",
-        "mod.diff <- NULL",
-        ""
-      ))
-    }
-    
     
     ret <- c(ret, c("# Restrict exposure support",
                     "Z_for_quants <- Z_support(",
                     "  Z = Z,",
                     "  mod.diff = mod.diff,",
-                    "  modifier = modifier",
+                    "  modifier = fit$modifier",
                     ")",
                     "",
                     "# Modifier values",
                     "modnew.1 <- rep(mod.diff[1], 2)",
                     "modnew.2 <- rep(mod.diff[2], 2)",
                     ""))
-  }
   
-  if(comparison == "Single" && movement == "Group Specific"){
+  }
     
-    ret <- c(ret, c(
-      "# Interaction settings",
-      "qs.diff <- c(0.25, 0.75)",
-      "qs.fixed <- c(0.25, 0.75)",
-      "",
-      "#YOU NEED TO CHANGE THIS TO YOUR SPECIFIED MODIFIER VALUE c('column_name_1', 'column_name_2') ",
-      "mod.diff <- NULL",
-      "",
-      "which.z <- 1:ncol(Z)",
-      "z.names <- colnames(Z)",
-      "",
-      "# Restrict support",
-      "Z_for_quants <- Z_support(",
-      "  Z = Z,",
-      "  mod.diff = mod.diff,",
-      "  modifier = modifier",
-      ")",
-      "",
-      "modnew.1 <- rep(mod.diff[1], 2)",
-      "modnew.2 <- rep(mod.diff[2], 2)",
-      ""
-    ))
-    
-  }
-  
-  if(comparison == "Single" && movement == "Overall"){
-    ret <- c(ret,     c(
-      "# Overall interaction settings",
-      "qs <- seq(0.25, 0.75, by = 0.05)",
-      "q.fixed <- 0.5",
-      "",
-      "#YOU NEED TO CHANGE THIS TO YOUR SPECIFIED MODIFIER VALUE c('column_name_1', 'column_name_2') ",
-      "mod.diff <- NULL",
-      ""
-    ))
-  }
-  
   ret
 }
 
 build_iteration_engine <- function(comparison, movement){
-  if(comparison == "Overall" && movement == "Overall"){
+  if(comparison == "Overall" && movement == "Group Specific"){
     
     c(
       "# Run Overall Overall analysis",
+      "point1 <- apply(Z_for_quants, 2, quantile, q.fixed)",
       "tmp_fn <- function(q) {",
       "",
       "  point2 <- apply(Z_for_quants, 2, quantile, q)",
@@ -345,7 +248,7 @@ build_iteration_engine <- function(comparison, movement){
     
   }
   
-  else if(comparison == "Overall" && movement == "Group Specific"){
+  else if(comparison == "Single" && movement == "Group Specific"){
     
     c(
       "# Run Single-variable Overall analysis",
@@ -393,7 +296,7 @@ build_iteration_engine <- function(comparison, movement){
     
   }
   
-  else if(comparison == "Single" && movement == "Overall"){
+  else if(comparison == "Overall" && movement == "Between Groups"){
     
     c(
       "# Run Overall interaction analysis",
@@ -421,7 +324,7 @@ build_iteration_engine <- function(comparison, movement){
     
   }
   
-  else if(comparison == "Single" && movement == "Group Specific"){
+  else if(comparison == "Single" && movement == "Between Groups"){
     
     c(
       "# Run Single-variable interaction analysis",
@@ -465,7 +368,7 @@ build_iteration_engine <- function(comparison, movement){
 
 build_output_formatter <- function(comparison, movement){
 
-  if(comparison == "Overall" && movement == "Overall"){
+  if(comparison == "Overall" && movement == "Group Specific"){
     
     c(
       "# Format results",
@@ -479,7 +382,7 @@ build_output_formatter <- function(comparison, movement){
     
   }
   
-  else if(comparison == "Overall" && movement == "Group Specific"){
+  else if(comparison == "Single" && movement == "Group Specific"){
     
     c(
       "# Format results",
@@ -495,7 +398,7 @@ build_output_formatter <- function(comparison, movement){
     
   }
   
-  else if(comparison == "Single" && movement == "Overall"){
+  else if(comparison == "Overall" && movement == "Between Groups"){
     
     c(
       "# Format results",
@@ -509,7 +412,7 @@ build_output_formatter <- function(comparison, movement){
     
   }
   
-  else if(comparison == "Single" && movement == "Group Specific"){
+  else if(comparison == "Single" && movement == "Between Groups"){
     c("  data.frame(",
     "    variable = z.names[j],",
     "    t(out)",
@@ -522,8 +425,9 @@ build_output_formatter <- function(comparison, movement){
   }
 }
 
+#needs a work beyone overall and group specific
 build_plotting <- function(comparison, movement){
-  if(comparison == "Overall" && movement == "Overall"){
+  if(comparison == "Overall" && movement == "Group Specific"){
     c("results$modifier <- rep(m.fixed, nrow(results))",
       "resultsfinal <- data.frame()",
       "for(m in unique(as.character(fit$modifier))){",
@@ -531,7 +435,7 @@ build_plotting <- function(comparison, movement){
       "  ",
       "  if(!is.null(m.fixed)) {",
       "    modnew <- matrix(rep(m.fixed, 2), ncol = 1)",
-      "    Z_for_quants <- Z[modifier == m.fixed, ]",
+      "    Z_for_quants <- Z[fit$modifier == m.fixed, ]",
       "  } else {",
       "    modnew <- NULL",
       "    Z_for_quants <- Z",
@@ -577,7 +481,7 @@ build_plotting <- function(comparison, movement){
       "  labs(color='modifier_name', shape = 'modifier_name')" )
   }
   
-  else if(comparison == "Overall" && movement == "Group Specific"){
+  else if(comparison == "Overall" && movement == "Between Groups"){
     c("results$modifier <- rep(m.fixed, nrow(results))",
       "#You must rerun your code, with the varying levels of m.fixed", 
       "#for example if your modifier is split by group ('group_1', 'group_2', 'group_3') and originally `m.fixed = 'group_1'`",
@@ -603,7 +507,7 @@ build_plotting <- function(comparison, movement){
       "   scale_color_manual(values=c('color_1', ...))")
   }
   
-  else if(comparison == "Single" && movement == "Overall"){
+  else if(comparison == "Single" && movement == "Group Specific"){
       c("plot_obj <- ggplot(results, aes(x=quantile, y = est,", 
       "                    ymin = est - 1.96*sd, ymax = est + 1.96*sd))+",
       "   geom_hline(yintercept=0)+",
@@ -614,7 +518,7 @@ build_plotting <- function(comparison, movement){
       "   ylab('CHANGE THIS Y-AXIS')")
   }
   
-  else if(comparison == "Single" && movement == "Group Specific"){
+  else if(comparison == "Single" && movement == "Between Groups"){
     c("plot_obj <- ggplot(results, aes(x='', y = est,", 
       "                    ymin = est - 1.96*sd, ymax = est + 1.96*sd))+",
       "   geom_hline(yintercept=0)+",

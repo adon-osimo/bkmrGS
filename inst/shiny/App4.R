@@ -18,19 +18,19 @@ ui <- fluidPage(
       
       selectInput(
         "comparison",
-        "Exposure Structure",
+        "(What is being held constant?) Exposure Surface",
         choices = c("Overall", "Single", "Bivariate")
       ),
       
       selectInput(
         "movement",
-        "Movement Type",
-        choices = c("Overall", "Group Specific")
+        "(What is being compared?) Movement Type",
+        choices = c("Group Specific", "Between Groups")
       ),
       
       uiOutput("comparison_Overall"),
-      uiOutput("movement_Overall"),
       uiOutput("movement_GS"),
+      uiOutput("movement_BG"),
       uiOutput("comparison_Single_1"),
       uiOutput("comparison_Single_2"),
       
@@ -119,25 +119,34 @@ server <- function(input, output, session){
     
     tagList(
       
-      numericInput(
-        "q.fixed",
-        "(q.fixed) Quantile Fixed At",
-        value = 0.5,
-        min = 0,
-        max = 1,
-        step = 0.05
-      ),
-    
       textInput(
         "qs",
         "(qs) Comparison Quantiles (e.g. c(0.25, 0.5, 0.75) or seq(0.25, 0.75, by = 0.05))",
         value = "seq(0.25, 0.75, by = 0.05)"
-      )
+      ),
+      
+      numericInput(
+          "q.fixed",
+          "(q.fixed) Quantile Fixed At",
+          value = 0.5,
+          min = 0,
+          max = 1,
+          step = 0.05
+        )
+      
+      #else {
+      #  textInput(
+      #    "q.fixed",
+      #    "(q.fixed multiple) Comparison Quantiles (e.g. c(0.25, 0.5, 0.75) or seq(0.25, 0.75, by = 0.05))",
+      #    value = "c(0.25, 0.75)"
+      #  )
+      #}
+
     )
     
   })
   
-  output$movement_Overall <- renderUI({
+  output$movement_GS <- renderUI({
     
     req(fit())
     
@@ -145,7 +154,7 @@ server <- function(input, output, session){
       return(NULL)
     }
     
-    if(input$movement == "Group Specific"){
+    if(input$movement == "Between Groups"){
       return(NULL)
     }
     
@@ -161,7 +170,7 @@ server <- function(input, output, session){
     
   })
   
-  output$movement_GS <- renderUI({
+  output$movement_BG <- renderUI({
     
     req(fit())
     
@@ -169,7 +178,7 @@ server <- function(input, output, session){
       return(NULL)
     }
     
-    if(input$movement == "Overall"){
+    if(input$movement == "Group Specific"){
       return(NULL)
     }
     
@@ -193,7 +202,7 @@ server <- function(input, output, session){
       return(NULL)
     }
     
-    if(!(input$movement == "Overall" && input$comparison == "Single")){
+    if(!(input$movement == "Group Specific" && input$comparison == "Single")){
       return(NULL)
     }
     
@@ -226,7 +235,7 @@ server <- function(input, output, session){
       return(NULL)
     }
     
-    if(!(input$movement == "Group Specific" && input$comparison == "Single")){
+    if(!(input$movement == "Between Groups" && input$comparison == "Single")){
       return(NULL)
     }
     
