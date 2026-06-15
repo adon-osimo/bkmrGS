@@ -18,13 +18,13 @@ ui <- fluidPage(
       
       selectInput(
         "comparison",
-        "(What is being held constant?) Exposure Surface",
+        "(What is changing?) Exposure Surface Variation",
         choices = c("Overall", "Single", "Bivariate")
       ),
       
       selectInput(
         "movement",
-        "(What is being compared?) Movement Type",
+        "(What is being compared?) Difference Comparison:",
         choices = c("Group Specific", "Between Groups")
       ),
       
@@ -163,7 +163,7 @@ server <- function(input, output, session){
       selectInput(
         "m.fixed",
         "(m.fixed) Fixed Modifier",
-        choices = unique(as.character(fit()$modifier))
+        choices = c(unique(as.character(fit()$modifier)), "All")
       )
       
     )

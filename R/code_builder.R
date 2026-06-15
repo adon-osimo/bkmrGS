@@ -21,7 +21,7 @@ generate_code <- function(
                                qs.diff, mod.diff, qs.fixed),
     build_prediction_function(sel),
     build_summary_function(movement),
-    build_point_constructor(comparison, movement, m.fixed, qs, q.fixed),
+    build_point_constructor(comparison, movement),
     build_iteration_engine(comparison, movement),
     build_output_formatter(comparison, movement),
     build_plotting(comparison, movement)
@@ -30,9 +30,7 @@ generate_code <- function(
   paste(code, collapse = "\n")
 }
 
-build_header <- function(
-    comparison,
-    movement){
+build_header <- function(comparison, movement){
     
     c(paste0("# ", movement, " ", comparison, " Analysis"), "")
 }
@@ -142,36 +140,33 @@ build_summary_function <- function(movement){
   }
 }
 
-build_point_constructor <- function(comparison, movement, m.fixed, qs, q.fixed){
+#This is one that I am going to have to update
+build_point_constructor <- function(comparison, movement){
   
   ret <- c()
   
-  if(movement == "Group Specific"){
-    
-    if(comparison == "Overall"){
-      
-      ret <- c(ret, c(
-        "# Single-variable Overall settings",
-        "which.z <- 1:ncol(Z)",
-        "z.names <- colnames(Z)",
-        ""
-      ))
-      
-    }
-    
-    
-    ret <- c(ret, c("",
-    paste0("m.fixed <- '", m.fixed, "'"),
-    "",
-    "if(!is.null(m.fixed)) {",
-    "  modnew <- matrix(rep(m.fixed, 2), ncol = 1)",
-    "  Z_for_quants <- Z[fit$modifier == m.fixed, , drop = FALSE]",
-    "} else {",
-    "  modnew <- NULL",
-    "  Z_for_quants <- Z",
-    "}",
-    ""))
-  }
+  #if(movement == "Group Specific"){
+  #  if(comparison == "Overall"){
+  #    
+  #    ret <- c(ret, c(
+  #      "# Single-variable Overall settings",
+  #      "which.z <- 1:ncol(Z)",
+  #      "z.names <- colnames(Z)",
+  #      ""
+  #    ))
+  #    
+  #  }
+  #  
+  #  
+  #  ret <- c(ret, c("if(!is.null(m.fixed)) {",
+  #  "  modnew <- matrix(rep(m.fixed, 2), ncol = 1)",
+  #  "  Z_for_quants <- Z[fit$modifier == m.fixed, , drop = FALSE]",
+  #  "} else {",
+  #  "  modnew <- NULL",
+  #  "  Z_for_quants <- Z",
+  #  "}",
+  #  ""))
+  #}
   
   if(movement == "Between Groups"){
   
@@ -224,25 +219,107 @@ build_point_constructor <- function(comparison, movement, m.fixed, qs, q.fixed){
   ret
 }
 
+#"# Run Overall Overall analysis",
+#"point1 <- apply(Z_for_quants, 2, quantile, q.fixed)",
+#"tmp_fn <- function(q) {",
+#"",
+#"  point2 <- apply(Z_for_quants, 2, quantile, q)",
+#"",
+#"  summary.fun(",
+#"    point1 = point1,",
+#"    point2 = point2,",
+#"    modnew = modnew,",
+#"    preds.fun = preds.fun",
+#"  )",
+#"}",
+#"",
+#"results <- t(sapply(qs, tmp_fn))",
+#"",
+#"#I put the loop here",
+#"",
+#"results$modifier <- rep(m.fixed, nrow(results))",
+
+#"# Run Single-variable Overall analysis",
+#"",
+#"results <- lapply(seq_along(q.fixed), function(i) {",
+#"",
+#"  lapply(seq_along(which.z), function(j) {",
+#"",
+#"    point1 <- apply(Z_for_quants, 2, quantile, q.fixed[i])",
+#"    point2 <- point1",
+#"",
+#"    point1[which.z[j]] <- quantile(",
+#"      Z_for_quants[, which.z[j]],",
+#"      qs.diff[1]",
+#"    )",
+#"",
+#"    point2[which.z[j]] <- quantile(",
+#"      Z_for_quants[, which.z[j]],",
+#"      qs.diff[2]",
+#"    )",
+#"",
+#"    out <- summary.fun(",
+#"      point1 = point1,",
+#"      point2 = point2,",
+#"      modnew = modnew,",
+#"      preds.fun = preds.fun",
+#"    )",
+#"",
+#"    data.frame(",
+#"      q.fixed = q.fixed[i],",
+#"      variable = z.names[j],",
+#"      t(out)",
+#"    )",
+#"",
+#"  })",
+#"",
+#"})",
+#"",
+#"results <- do.call(",
+#"  rbind,",
+#"  unlist(results, recursive = FALSE)",
+#")",
+#"",
+#"#I put the loop here",
+#"",
+
 build_iteration_engine <- function(comparison, movement){
   if(comparison == "Overall" && movement == "Group Specific"){
     
-    c(
-      "# Run Overall Overall analysis",
-      "point1 <- apply(Z_for_quants, 2, quantile, q.fixed)",
-      "tmp_fn <- function(q) {",
-      "",
-      "  point2 <- apply(Z_for_quants, 2, quantile, q)",
-      "",
-      "  summary.fun(",
-      "    point1 = point1,",
-      "    point2 = point2,",
-      "    modnew = modnew,",
-      "    preds.fun = preds.fun",
+    c("if(m.fixed == 'All'){",
+      "   iter_over <- c(unique(as.character(fit$modifier)))",
+      "} else{",
+      "   iter_over <- c(m.fixed)}",
+      "results <- data.frame()",
+      "for(m in iter_over){",
+      "  m.fixed <- m",
+      "  if(!is.null(m.fixed)) {",
+      "    modnew <- matrix(rep(m.fixed, 2), ncol = 1)",
+      "    Z_for_quants <- Z[fit$modifier == m.fixed, ]",
+      "  } else {",
+      "    modnew <- NULL",
+      "    Z_for_quants <- Z",
+      "  }",
+      "  point1 <- apply(Z_for_quants, 2, quantile, q.fixed)",
+      "  tmp_fn <- function(q) {",
+      "    point2 <- apply(Z_for_quants, 2, quantile, q)",
+      "    summary.fun(",
+      "      point1 = point1,",
+      "      point2 = point2,",
+      "      modnew = modnew,",
+      "      preds.fun = preds.fun",
+      "    )",
+      "  }",
+      "  results_temp <- t(sapply(qs, tmp_fn))",
+      "  ",
+      "  results_temp <- data.frame(",
+      "    quantile = qs,",
+      "    results_temp",
       "  )",
+      "  ",
+      "  results_temp$modifier <- rep(m.fixed, nrow(results_temp))",
+      "  results<- rbind(results, results_temp)",
       "}",
-      "",
-      "results <- t(sapply(qs, tmp_fn))",
       ""
     )
     
@@ -250,65 +327,63 @@ build_iteration_engine <- function(comparison, movement){
   
   else if(comparison == "Single" && movement == "Group Specific"){
     
-    c(
-      "# Run Single-variable Overall analysis",
-      "",
-      "results <- lapply(seq_along(q.fixed), function(i) {",
-      "",
-      "  lapply(seq_along(which.z), function(j) {",
-      "",
-      "    point1 <- apply(Z_for_quants, 2, quantile, q.fixed[i])",
-      "    point2 <- point1",
-      "",
-      "    point1[which.z[j]] <- quantile(",
-      "      Z_for_quants[, which.z[j]],",
-      "      qs.diff[1]",
-      "    )",
-      "",
-      "    point2[which.z[j]] <- quantile(",
-      "      Z_for_quants[, which.z[j]],",
-      "      qs.diff[2]",
-      "    )",
-      "",
-      "    out <- summary.fun(",
-      "      point1 = point1,",
-      "      point2 = point2,",
-      "      modnew = modnew,",
-      "      preds.fun = preds.fun",
-      "    )",
-      "",
-      "    data.frame(",
-      "      q.fixed = q.fixed[i],",
-      "      variable = z.names[j],",
-      "      t(out)",
-      "    )",
-      "",
+    c("if(m.fixed == 'All'){",
+      "   iter_over <- c(unique(as.character(fit$modifier)))",
+      "} else{",
+      "   iter_over <- c(m.fixed)}",
+      "results <- data.frame()",
+      "for(m in iter_over){",
+      "  m.fixed <- m",
+      "  modnew <- matrix(rep(m.fixed, 2), ncol = 1)",
+      "  Z_for_quants <- Z[fit$modifier == m.fixed, ]",
+      "  results_tmp <-  lapply(seq_along(q.fixed), function(i) {",
+      "    lapply(seq_along(which.z), function(j) {",
+      "      point1 <- apply(Z_for_quants, 2, quantile, q.fixed[i])",
+      "      point2 <- point1",
+      "      point1[which.z[j]] <- quantile(",
+      "        Z_for_quants[, which.z[j]],",
+      "        qs.diff[1]",
+      "      )",
+      "      point2[which.z[j]] <- quantile(",
+      "        Z_for_quants[, which.z[j]],",
+      "        qs.diff[2]",
+      "      )",
+      "      out <- summary.fun(",
+      "        point1 = point1,",
+      "        point2 = point2,",
+      "        modnew = modnew,",
+      "        preds.fun = preds.fun",
+      "      )",
+      "      data.frame(",
+      "        q.fixed = q.fixed[i],",
+      "        variable = z.names[j],",
+      "        t(out)",
+      "      )",
+      "    })",
       "  })",
-      "",
-      "})",
-      "",
-      "results <- do.call(",
-      "  rbind,",
-      "  unlist(results, recursive = FALSE)",
-      ")",
-      ""
+      "  results_tmp <- do.call(",
+      "    rbind,",
+      "    unlist(results_tmp, recursive = FALSE)",
+      "  )",
+      "  results_tmp$variable <- factor(",
+      "    results_tmp$variable,",
+      "    levels = z.names",
+      "  )",
+      "  results_tmp$q.fixed <- as.factor(results_tmp$q.fixed)",
+      "  results_tmp$modifier <- rep(m.fixed, nrow(results_tmp))",
+      "  results <- rbind(results, results_tmp)",
+      "}"
     )
     
   }
   
   else if(comparison == "Overall" && movement == "Between Groups"){
     
-    c(
-      "# Run Overall interaction analysis",
-      "",
-      "tmp_fn <- function(q) {",
-      "",
+    c("tmp_fn <- function(q) {",
       "  point1 <- apply(Z_for_quants, 2, quantile, q.fixed)",
       "  point2 <- apply(Z_for_quants, 2, quantile, q)",
-      "",
       "  newz.q1 <- rbind(point1, point2)",
       "  newz.q2 <- rbind(point1, point2)",
-      "",
       "  summary.fun(",
       "    newz.q1 = newz.q1,",
       "    newz.q2 = newz.q2,",
@@ -317,96 +392,54 @@ build_iteration_engine <- function(comparison, movement){
       "    preds.fun = preds.fun",
       "  )",
       "}",
-      "",
-      "results <- t(sapply(qs, tmp_fn))",
-      ""
+      "results <- t(sapply(qs, tmp_fn))"
     )
     
   }
   
   else if(comparison == "Single" && movement == "Between Groups"){
     
-    c(
-      "# Run Single-variable interaction analysis",
-      "results <- lapply(which.z, function(j) {",
-      "",
-      "  # First comparison",
+    c("results <- lapply(which.z, function(j) {",
       "  q.fixed <- qs.fixed[1]",
-      "",
       "  point1 <- apply(Z_for_quants, 2, quantile, q.fixed)",
       "  point2 <- point1",
-      "",
       "  point1[j] <- quantile(Z_for_quants[, j], qs.diff[1])",
       "  point2[j] <- quantile(Z_for_quants[, j], qs.diff[2])",
-      "",
       "  newz.q1 <- rbind(point1, point2)",
-      "",
-      "  # Second comparison",
       "  q.fixed <- qs.fixed[2]",
-      "",
       "  point1 <- apply(Z_for_quants, 2, quantile, q.fixed)",
       "  point2 <- point1",
-      "",
       "  point1[j] <- quantile(Z_for_quants[, j], qs.diff[1])",
       "  point2[j] <- quantile(Z_for_quants[, j], qs.diff[2])",
-      "",
       "  newz.q2 <- rbind(point1, point2)",
-      "",
       "  out <- summary.fun(",
       "    newz.q1 = newz.q1,",
       "    newz.q2 = newz.q2,",
       "    modnew.1 = modnew.1,",
       "    modnew.2 = modnew.2,",
       "    preds.fun = preds.fun",
-      "  )",
-      ""
+      "  )"
     )
     
   }
   
 }
 
+#Need to change this to only have the results object returned
 build_output_formatter <- function(comparison, movement){
 
-  if(comparison == "Overall" && movement == "Group Specific"){
+  if(movement == "Group Specific"){
     
-    c(
-      "# Format results",
-      "results <- data.frame(",
-      "  quantile = qs,",
-      "  results",
-      ")",
-      "",
-      "results"
-    )
-    
-  }
-  
-  else if(comparison == "Single" && movement == "Group Specific"){
-    
-    c(
-      "# Format results",
-      "results$variable <- factor(",
-      "  results$variable,",
-      "  levels = z.names",
-      ")",
-      "",
-      "results$q.fixed <- as.factor(results$q.fixed)",
-      "",
-      "print(results)"
-    )
+    c("results")
     
   }
   
   else if(comparison == "Overall" && movement == "Between Groups"){
     
-    c(
-      "# Format results",
-      "results <- data.frame(",
+    c("results <- data.frame(",
       "  quantile = qs,",
       "  results",
       ")",
-      "",
       "print(results)"
     )
     
@@ -417,57 +450,17 @@ build_output_formatter <- function(comparison, movement){
     "    variable = z.names[j],",
     "    t(out)",
     "  )",
-    "",
     "})",
-    "",
     "results <- do.call(rbind, results)",
-    "")
+    "results")
   }
 }
 
-#NEED TO ALTER BESDIES FIRST OVERALL AND GS
+#Need to change this to only have the plot_obj returned
+#I think this is good, just have to check that what I am calling on is correct
 build_plotting <- function(comparison, movement){
   if(comparison == "Overall" && movement == "Group Specific"){
-    c("results$modifier <- rep(m.fixed, nrow(results))",
-      "resultsfinal <- data.frame()",
-      "for(m in unique(as.character(fit$modifier))){",
-      "  m.fixed <- m",
-      "  ",
-      "  if(!is.null(m.fixed)) {",
-      "    modnew <- matrix(rep(m.fixed, 2), ncol = 1)",
-      "    Z_for_quants <- Z[fit$modifier == m.fixed, ]",
-      "  } else {",
-      "    modnew <- NULL",
-      "    Z_for_quants <- Z",
-      "  }",
-      "  ",
-      "  point1 <- apply(Z_for_quants, 2, quantile, q.fixed)",
-      "",
-      "  tmp_fn <- function(q) {",
-      "    ",
-      "    point2 <- apply(Z_for_quants, 2, quantile, q)",
-      "    ",
-      "    summary.fun(",
-      "      point1 = point1,",
-      "      point2 = point2,",
-      "      modnew = modnew,",
-      "      preds.fun = preds.fun",
-      "    )",
-      "  }",
-      "  ",
-      "  results <- t(sapply(qs, tmp_fn))",
-      "  ",
-      "  # Format results",
-      "  results <- data.frame(",
-      "    quantile = qs,",
-      "    results",
-      "  )",
-      "  ",
-      "  results$modifier <- rep(m.fixed, nrow(results))",
-      "  resultsfinal <- rbind(resultsfinal, results)",
-      "}",
-      "",
-      "plot_obj <- ggplot(resultsfinal,",
+    c("plot_obj <- ggplot(results,",
       "       aes(x=quantile, y = est, ymin = est - 1.96*sd,",
       "           ymax = est + 1.96*sd, color = modifier, ",
       "           shape = modifier)) + ",
@@ -482,63 +475,7 @@ build_plotting <- function(comparison, movement){
   }
 
   else if(comparison == "Single" && movement == "Group Specific"){
-    c("results$modifier <- rep(m.fixed, nrow(results))",
-      "resultsfinal <- data.frame()",
-      "for(m in unique(as.character(fit$modifier))){",
-      "",  
-      "  m.fixed <- m",
-      "  modnew <- matrix(rep(m.fixed, 2), ncol = 1)",
-      "  Z_for_quants <- Z[fit$modifier == m.fixed, ]",
-      "",  
-      "  results_tmp <-  lapply(seq_along(q.fixed), function(i) {",
-      "",    
-      "    lapply(seq_along(which.z), function(j) {",
-      ""  ,    
-      "      point1 <- apply(Z_for_quants, 2, quantile, q.fixed[i])",
-      "      point2 <- point1",
-      ""      ,
-      "      point1[which.z[j]] <- quantile(",
-      "        Z_for_quants[, which.z[j]],",
-      "        qs.diff[1]",
-      "      )",
-      "" ,     
-      "      point2[which.z[j]] <- quantile(",
-      "        Z_for_quants[, which.z[j]],",
-      "        qs.diff[2]",
-      "      )",
-      ""    ,  
-      "      out <- summary.fun(",
-      "        point1 = point1,",
-      "        point2 = point2,",
-      "        modnew = modnew,",
-      "        preds.fun = preds.fun",
-      "      )",
-      ""     , 
-      "      data.frame(",
-      "        q.fixed = q.fixed[i],",
-      "        variable = z.names[j],",
-      "        t(out)",
-      "      )",
-      "    })",
-      "  })",
-      ""  ,
-      "  results_tmp <- do.call(",
-      "    rbind,",
-      "    unlist(results_tmp, recursive = FALSE)",
-      "  )",
-      "  results_tmp$variable <- factor(",
-      "    results_tmp$variable,",
-      "    levels = z.names",
-      "  )",
-      ""  ,
-      "  results_tmp$q.fixed <- as.factor(results_tmp$q.fixed)",
-      "  results_tmp$modifier <- rep(m.fixed, nrow(results_tmp))",
-      "  resultsfinal <- rbind(resultsfinal, results_tmp)",
-      "}",
-      "",
-      "resultsfinal",      
-      "",
-      "plot_obj <- ggplot(resultsfinal,",
+    c("plot_obj <- ggplot(results,",
       "                   aes(x=q.fixed, y = est, ymin = est - 1.96*sd,",
       "                       ymax = est + 1.96*sd, color = modifier, ",
       "                       shape = modifier))+",
