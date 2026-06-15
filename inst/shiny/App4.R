@@ -17,22 +17,22 @@ ui <- fluidPage(
       hr(),
       
       selectInput(
-        "comparison",
+        "exposure",
         "(What is changing?) Exposure Variation",
         choices = c("Overall", "Single", "Bivariate")
       ),
       
       selectInput(
-        "movement",
+        "analysis",
         "(What is being compared?) Difference Type:",
         choices = c("Group Specific", "Between Groups")
       ),
       
-      uiOutput("comparison_Overall"),
-      uiOutput("movement_GS"),
-      uiOutput("movement_BG"),
-      uiOutput("comparison_Single_1"),
-      uiOutput("comparison_Single_2"),
+      uiOutput("exposure_Overall"),
+      uiOutput("analysis_GS"),
+      uiOutput("analysis_BG"),
+      uiOutput("exposure_Single_1"),
+      uiOutput("exposure_Single_2"),
       
       actionButton(
         "prev",
@@ -105,7 +105,7 @@ server <- function(input, output, session){
     
   })
   
-  output$comparison_Overall <- renderUI({
+  output$exposure_Overall <- renderUI({
     
     req(fit())
     
@@ -113,7 +113,7 @@ server <- function(input, output, session){
       return(NULL)
     }
     
-    if(input$comparison == "Single"){
+    if(input$exposure == "Single"){
       return(NULL)
     }
     
@@ -121,7 +121,7 @@ server <- function(input, output, session){
       
       textInput(
         "qs",
-        "(qs) Comparison Quantiles (e.g. c(0.25, 0.5, 0.75) or seq(0.25, 0.75, by = 0.05))",
+        "(qs) exposure Quantiles (e.g. c(0.25, 0.5, 0.75) or seq(0.25, 0.75, by = 0.05))",
         value = "seq(0.25, 0.75, by = 0.05)"
       ),
       
@@ -137,7 +137,7 @@ server <- function(input, output, session){
       #else {
       #  textInput(
       #    "q.fixed",
-      #    "(q.fixed multiple) Comparison Quantiles (e.g. c(0.25, 0.5, 0.75) or seq(0.25, 0.75, by = 0.05))",
+      #    "(q.fixed multiple) exposure Quantiles (e.g. c(0.25, 0.5, 0.75) or seq(0.25, 0.75, by = 0.05))",
       #    value = "c(0.25, 0.75)"
       #  )
       #}
@@ -146,7 +146,7 @@ server <- function(input, output, session){
     
   })
   
-  output$movement_GS <- renderUI({
+  output$analysis_GS <- renderUI({
     
     req(fit())
     
@@ -154,7 +154,7 @@ server <- function(input, output, session){
       return(NULL)
     }
     
-    if(input$movement == "Between Groups"){
+    if(input$analysis == "Between Groups"){
       return(NULL)
     }
     
@@ -170,7 +170,7 @@ server <- function(input, output, session){
     
   })
   
-  output$movement_BG <- renderUI({
+  output$analysis_BG <- renderUI({
     
     req(fit())
     
@@ -178,7 +178,7 @@ server <- function(input, output, session){
       return(NULL)
     }
     
-    if(input$movement == "Group Specific"){
+    if(input$analysis == "Group Specific"){
       return(NULL)
     }
     
@@ -194,7 +194,7 @@ server <- function(input, output, session){
     
   })  
   
-  output$comparison_Single_1 <- renderUI({
+  output$exposure_Single_1 <- renderUI({
     
     req(fit())
     
@@ -202,7 +202,7 @@ server <- function(input, output, session){
       return(NULL)
     }
     
-    if(!(input$movement == "Group Specific" && input$comparison == "Single")){
+    if(!(input$analysis == "Group Specific" && input$exposure == "Single")){
       return(NULL)
     }
     
@@ -227,7 +227,7 @@ server <- function(input, output, session){
     
   }) 
   
-  output$comparison_Single_2 <- renderUI({
+  output$exposure_Single_2 <- renderUI({
     
     req(fit())
     
@@ -235,7 +235,7 @@ server <- function(input, output, session){
       return(NULL)
     }
     
-    if(!(input$movement == "Between Groups" && input$comparison == "Single")){
+    if(!(input$analysis == "Between Groups" && input$exposure == "Single")){
       return(NULL)
     }
     
@@ -264,8 +264,8 @@ server <- function(input, output, session){
   generated_code_preview <- eventReactive(input$prev, {
     generate_code(
       fit_name = input$fit_name,
-      comparison = input$comparison,
-      movement = input$movement,
+      exposure = input$exposure,
+      analysis = input$analysis,
       centered = input$centered,
       sel = '1:10',
       m.fixed = input$m.fixed,
@@ -283,8 +283,8 @@ server <- function(input, output, session){
     
     generate_code(
       fit_name = input$fit_name,
-      comparison = input$comparison,
-      movement = input$movement,
+      exposure = input$exposure,
+      analysis = input$analysis,
       centered = input$centered,
       m.fixed = input$m.fixed,
       qs = input$qs,

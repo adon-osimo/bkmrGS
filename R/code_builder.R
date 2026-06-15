@@ -2,8 +2,8 @@
 #' @export
 generate_code <- function(
     fit_name = "fitkm",
-    comparison = "Overall",
-    movement = "Group Specific",
+    exposure = "Overall",
+    analysis = "Group Specific",
     centered = FALSE,
     sel = "NULL",
     m.fixed = NULL,
@@ -15,24 +15,24 @@ generate_code <- function(
   
   
   code <- c(
-    build_header(comparison, movement),
+    build_header(exposure, analysis),
     build_data_extract(fit_name),
-    build_user_changeable_data(comparison, movement, m.fixed, qs, q.fixed,
+    build_user_changeable_data(exposure, analysis, m.fixed, qs, q.fixed,
                                qs.diff, mod.diff, qs.fixed),
     build_prediction_function(sel),
-    build_summary_function(movement),
-    build_point_constructor(comparison, movement),
-    build_iteration_engine(comparison, movement),
-    build_output_formatter(comparison, movement),
-    build_plotting(comparison, movement)
+    build_summary_function(analysis),
+    build_point_constructor(exposure, analysis),
+    build_iteration_engine(exposure, analysis),
+    build_output_formatter(exposure, analysis),
+    build_plotting(exposure, analysis)
   )
   
   paste(code, collapse = "\n")
 }
 
-build_header <- function(comparison, movement){
+build_header <- function(exposure, analysis){
     
-    c(paste0("# ", comparison, " ", movement, " Analysis"), "")
+    c(paste0("# ", exposure, " ", analysis, " Analysis"), "")
 }
 
 build_data_extract <- function(fit_name){
@@ -40,34 +40,34 @@ build_data_extract <- function(fit_name){
     paste0("fit <- ", fit_name, ""))
 }
 
-build_user_changeable_data <- function(comparison, movement, m.fixed, qs, q.fixed,
+build_user_changeable_data <- function(exposure, analysis, m.fixed, qs, q.fixed,
                                        qs.diff, mod.diff, qs.fixed){
   ret <- c("#ALL OF THESE ARE CHANGEABLE AT YOUR DISCRESION",
            "#BE SURE THAT WHEN YOU RUN THIS CODE YOU UPDATE THE FOLLOWING LINES",
            "#TO REFLECT WHAT VALUES YOU WANT TO SEE")
   
-  if(comparison == "Overall"){
+  if(exposure == "Overall"){
     ret <- c(ret, c("",
                     paste0("qs <- ", as.character(qs), " "),
                     "",
                     paste0("q.fixed <- ", as.character(q.fixed), " ")))
   }
   
-  if (movement == "Group Specific"){
+  if (analysis == "Group Specific"){
     ret <- c(ret, c("",
                     paste0("m.fixed <- '", as.character(m.fixed), "' ")))
   }
   
-  if(movement == "Between Groups"){
+  if(analysis == "Between Groups"){
     ret <- c(ret, c("",
                     paste0("mod.diff <- ", as.character(mod.diff), " ")))
   }
   
-  if(comparison == "Single"){
+  if(exposure == "Single"){
     ret <- c(ret, c("",
                     paste0("qs.diff <-", as.character(qs.diff), " ")))
     
-    if(movement == "Group Specific"){
+    if(analysis == "Group Specific"){
       ret <- c(ret, c("",
                       paste0("q.fixed <- ", as.character(q.fixed), " ")))
     }
@@ -99,8 +99,8 @@ build_prediction_function <- function(sel){
     "method = 'exact')}")
 }
 
-build_summary_function <- function(movement){
-  if(movement == "Group Specific"){
+build_summary_function <- function(analysis){
+  if(analysis == "Group Specific"){
     
     c(
       "# Overall summary function",
@@ -114,7 +114,7 @@ build_summary_function <- function(movement){
       "}"
     )
   
-  } else if(movement == "Between Groups") {
+  } else if(analysis == "Between Groups") {
   
   c(
     "# Interaction summary function",
@@ -133,12 +133,12 @@ build_summary_function <- function(movement){
 }
 
 #This is one that I am going to have to update
-build_point_constructor <- function(comparison, movement){
+build_point_constructor <- function(exposure, analysis){
   
   ret <- c()
   
-  #if(movement == "Group Specific"){
-  #  if(comparison == "Overall"){
+  #if(analysis == "Group Specific"){
+  #  if(exposure == "Overall"){
   #    
   #    ret <- c(ret, c(
   #      "# Single-variable Overall settings",
@@ -160,7 +160,7 @@ build_point_constructor <- function(comparison, movement){
   #  ""))
   #}
   
-  if(movement == "Between Groups"){
+  if(analysis == "Between Groups"){
   
     ret <- c(ret, c("Z_support <- function(Z, mod.diff, modifier){",
     "  mins <- c()",
@@ -181,7 +181,7 @@ build_point_constructor <- function(comparison, movement){
     "  return(Z_for_quants)",
     "}"))
     
-    if(comparison == "Single"){
+    if(exposure == "Single"){
       
       ret <- c(ret, c(
         "which.z <- 1:ncol(Z)",
@@ -205,8 +205,8 @@ build_point_constructor <- function(comparison, movement){
   ret
 }
 
-build_iteration_engine <- function(comparison, movement){
-  if(comparison == "Overall" && movement == "Group Specific"){
+build_iteration_engine <- function(exposure, analysis){
+  if(exposure == "Overall" && analysis == "Group Specific"){
     
     c("if(m.fixed == 'All'){",
       "   iter_over <- c(unique(as.character(fit$modifier)))",
@@ -246,7 +246,7 @@ build_iteration_engine <- function(comparison, movement){
     
   }
   
-  else if(comparison == "Single" && movement == "Group Specific"){
+  else if(exposure == "Single" && analysis == "Group Specific"){
     
     c("if(m.fixed == 'All'){",
       "   iter_over <- c(unique(as.character(fit$modifier)))",
@@ -298,7 +298,7 @@ build_iteration_engine <- function(comparison, movement){
     
   }
   
-  else if(comparison == "Overall" && movement == "Between Groups"){
+  else if(exposure == "Overall" && analysis == "Between Groups"){
     
     c("tmp_fn <- function(q) {",
       "  point1 <- apply(Z_for_quants, 2, quantile, q.fixed)",
@@ -318,7 +318,7 @@ build_iteration_engine <- function(comparison, movement){
     
   }
   
-  else if(comparison == "Single" && movement == "Between Groups"){
+  else if(exposure == "Single" && analysis == "Between Groups"){
     
     c("results <- lapply(which.z, function(j) {",
       "  q.fixed <- qs.fixed[1]",
@@ -347,15 +347,15 @@ build_iteration_engine <- function(comparison, movement){
 }
 
 #Need to change this to only have the results object returned
-build_output_formatter <- function(comparison, movement){
+build_output_formatter <- function(exposure, analysis){
 
-  if(movement == "Group Specific"){
+  if(analysis == "Group Specific"){
     
     c("results")
     
   }
   
-  else if(comparison == "Overall" && movement == "Between Groups"){
+  else if(exposure == "Overall" && analysis == "Between Groups"){
     
     c("results <- data.frame(",
       "  quantile = qs,",
@@ -366,7 +366,7 @@ build_output_formatter <- function(comparison, movement){
     
   }
   
-  else if(comparison == "Single" && movement == "Between Groups"){
+  else if(exposure == "Single" && analysis == "Between Groups"){
     c("  data.frame(",
     "    variable = z.names[j],",
     "    t(out)",
@@ -379,8 +379,8 @@ build_output_formatter <- function(comparison, movement){
 
 #Need to change this to only have the plot_obj returned
 #I think this is good, just have to check that what I am calling on is correct
-build_plotting <- function(comparison, movement){
-  if(comparison == "Overall" && movement == "Group Specific"){
+build_plotting <- function(exposure, analysis){
+  if(exposure == "Overall" && analysis == "Group Specific"){
     c("plot_obj <- ggplot(results,",
       "       aes(x=quantile, y = est, ymin = est - 1.96*sd,",
       "           ymax = est + 1.96*sd, color = modifier, ",
@@ -395,7 +395,7 @@ build_plotting <- function(comparison, movement){
       "  labs(color='modifier_name', shape = 'modifier_name')" )
   }
 
-  else if(comparison == "Single" && movement == "Group Specific"){
+  else if(exposure == "Single" && analysis == "Group Specific"){
     c("plot_obj <- ggplot(results,",
       "                   aes(x=q.fixed, y = est, ymin = est - 1.96*sd,",
       "                       ymax = est + 1.96*sd, color = modifier, ",
@@ -411,7 +411,7 @@ build_plotting <- function(comparison, movement){
       "        labs(color='modifier_name', shape = 'modifier_name')")
   }
   
-  else if(comparison == "Overall" && movement == "Between Groups"){
+  else if(exposure == "Overall" && analysis == "Between Groups"){
       c("plot_obj <- ggplot(results, aes(x=quantile, y = est,", 
       "                    ymin = est - 1.96*sd, ymax = est + 1.96*sd))+",
       "   geom_hline(yintercept=0)+",
@@ -422,7 +422,7 @@ build_plotting <- function(comparison, movement){
       "   ylab('CHANGE THIS Y-AXIS')")
   }
   
-  else if(comparison == "Single" && movement == "Between Groups"){
+  else if(exposure == "Single" && analysis == "Between Groups"){
     c("plot_obj <- ggplot(results, aes(x='', y = est,", 
       "                    ymin = est - 1.96*sd, ymax = est + 1.96*sd))+",
       "   geom_hline(yintercept=0)+",
