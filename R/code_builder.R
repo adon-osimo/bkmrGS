@@ -32,18 +32,12 @@ generate_code <- function(
 
 build_header <- function(comparison, movement){
     
-    c(paste0("# ", movement, " ", comparison, " Analysis"), "")
+    c(paste0("# ", comparison, " ", movement, " Analysis"), "")
 }
 
 build_data_extract <- function(fit_name){
   c("#Update this line with the name of your bkmrfit object!!",
-    paste0("fit <- ", fit_name, ""),
-    "#Change this if you want a different Z",
-    "Z <- fit$Z",
-    "#Change this if you want a different X",
-    "X <- fit$X",
-    "#y <- fit$y",
-    "#modifier <- fit$modifier")
+    paste0("fit <- ", fit_name, ""))
 }
 
 build_user_changeable_data <- function(comparison, movement, m.fixed, qs, q.fixed,
@@ -53,31 +47,39 @@ build_user_changeable_data <- function(comparison, movement, m.fixed, qs, q.fixe
            "#TO REFLECT WHAT VALUES YOU WANT TO SEE")
   
   if(comparison == "Overall"){
-    ret <- c(ret, c(paste0("qs <- ", as.character(qs), " "),
+    ret <- c(ret, c("",
+                    paste0("qs <- ", as.character(qs), " "),
+                    "",
                     paste0("q.fixed <- ", as.character(q.fixed), " ")))
   }
   
   if (movement == "Group Specific"){
-    ret <- c(ret, c(paste0("m.fixed <- '", as.character(m.fixed), "' ")))
+    ret <- c(ret, c("",
+                    paste0("m.fixed <- '", as.character(m.fixed), "' ")))
   }
   
   if(movement == "Between Groups"){
-    ret <- c(ret, c(paste0("mod.diff <- ", as.character(mod.diff), " ")))
+    ret <- c(ret, c("",
+                    paste0("mod.diff <- ", as.character(mod.diff), " ")))
   }
   
   if(comparison == "Single"){
-    ret <- c(ret, c(paste0("qs.diff <-", as.character(qs.diff), " ")))
+    ret <- c(ret, c("",
+                    paste0("qs.diff <-", as.character(qs.diff), " ")))
     
     if(movement == "Group Specific"){
-      ret <- c(ret, c(paste0("q.fixed <- ", as.character(q.fixed), " ")))
+      ret <- c(ret, c("",
+                      paste0("q.fixed <- ", as.character(q.fixed), " ")))
     }
     
     else {
-      ret <- c(ret, c(paste0("qs.fixed <- ", as.character(qs.fixed), " ")))
+      ret <- c(ret, c("",
+                      paste0("qs.fixed <- ", as.character(qs.fixed), " ")))
     }
   }
   
-  ret <- c(ret, c("#THE REST OF THIS CODE IS JUST RUNNABLE, DO NOT EDIT",
+  ret <- c(ret, c("",
+                  "#THE REST OF THIS CODE IS JUST RUNNABLE, DO NOT EDIT",
                   "#ANY CODE BETWEEN NOW AND plot_obj"))
   
   ret
@@ -88,8 +90,8 @@ build_prediction_function <- function(sel){
   c("preds.fun <- function(znew, modnew) { #do not comment out this line",
     "ComputePostmeanHnew(fit = fit,",
     "y = fit$y,",
-    "Z = Z,",
-    "X = X,",
+    "Z = fit$Z,",
+    "X = fit$X,",
     "modifier = fit$modifier,",
     "Znew = znew,",
     "mod_new = modnew,",
@@ -103,17 +105,13 @@ build_summary_function <- function(movement){
     c(
       "# Overall summary function",
       "summary.fun <- function(point1, point2, modnew = NULL, preds.fun) {",
-      "",
       "  cc <- c(-1, 1)",
       "  newz <- rbind(point1, point2)",
       "  preds <- preds.fun(newz, modnew)",
-      "",
       "  diff <- drop(cc %*% preds$postmean)",
       "  diff.sd <- drop(sqrt(cc %*% preds$postvar %*% cc))",
-      "",
       "  c(est = diff, sd = diff.sd)",
-      "}",
-      ""
+      "}"
     )
   
   } else if(movement == "Between Groups") {
@@ -121,20 +119,14 @@ build_summary_function <- function(movement){
   c(
     "# Interaction summary function",
     "summary.fun <- function(newz.q1, newz.q2, modnew.1, modnew.2, preds.fun) {",
-    "",
     "  newz <- rbind(newz.q1, newz.q2)",
     "  modnew <- c(modnew.1, modnew.2)",
-    "",
     "  preds <- preds.fun(newz, modnew)",
-    "",
     "  cc <- c(-1 * c(-1, 1), c(-1, 1))",
-    "",
     "  int <- drop(cc %*% preds$postmean)",
     "  int.sd <- drop(sqrt(cc %*% preds$postvar %*% cc))",
-    "",
     "  c(est = int, sd = int.sd)",
-    "}",
-    ""
+    "}"
     )
   
   }
@@ -192,11 +184,8 @@ build_point_constructor <- function(comparison, movement){
     if(comparison == "Single"){
       
       ret <- c(ret, c(
-        "# Interaction settings",
-        "",
         "which.z <- 1:ncol(Z)",
-        "z.names <- colnames(Z)",
-        ""
+        "z.names <- colnames(Z)"
       ))
       
     }
@@ -208,80 +197,13 @@ build_point_constructor <- function(comparison, movement){
                     "  mod.diff = mod.diff,",
                     "  modifier = fit$modifier",
                     ")",
-                    "",
-                    "# Modifier values",
                     "modnew.1 <- rep(mod.diff[1], 2)",
-                    "modnew.2 <- rep(mod.diff[2], 2)",
-                    ""))
+                    "modnew.2 <- rep(mod.diff[2], 2)"))
   
   }
     
   ret
 }
-
-#"# Run Overall Overall analysis",
-#"point1 <- apply(Z_for_quants, 2, quantile, q.fixed)",
-#"tmp_fn <- function(q) {",
-#"",
-#"  point2 <- apply(Z_for_quants, 2, quantile, q)",
-#"",
-#"  summary.fun(",
-#"    point1 = point1,",
-#"    point2 = point2,",
-#"    modnew = modnew,",
-#"    preds.fun = preds.fun",
-#"  )",
-#"}",
-#"",
-#"results <- t(sapply(qs, tmp_fn))",
-#"",
-#"#I put the loop here",
-#"",
-#"results$modifier <- rep(m.fixed, nrow(results))",
-
-#"# Run Single-variable Overall analysis",
-#"",
-#"results <- lapply(seq_along(q.fixed), function(i) {",
-#"",
-#"  lapply(seq_along(which.z), function(j) {",
-#"",
-#"    point1 <- apply(Z_for_quants, 2, quantile, q.fixed[i])",
-#"    point2 <- point1",
-#"",
-#"    point1[which.z[j]] <- quantile(",
-#"      Z_for_quants[, which.z[j]],",
-#"      qs.diff[1]",
-#"    )",
-#"",
-#"    point2[which.z[j]] <- quantile(",
-#"      Z_for_quants[, which.z[j]],",
-#"      qs.diff[2]",
-#"    )",
-#"",
-#"    out <- summary.fun(",
-#"      point1 = point1,",
-#"      point2 = point2,",
-#"      modnew = modnew,",
-#"      preds.fun = preds.fun",
-#"    )",
-#"",
-#"    data.frame(",
-#"      q.fixed = q.fixed[i],",
-#"      variable = z.names[j],",
-#"      t(out)",
-#"    )",
-#"",
-#"  })",
-#"",
-#"})",
-#"",
-#"results <- do.call(",
-#"  rbind,",
-#"  unlist(results, recursive = FALSE)",
-#")",
-#"",
-#"#I put the loop here",
-#"",
 
 build_iteration_engine <- function(comparison, movement){
   if(comparison == "Overall" && movement == "Group Specific"){
@@ -319,8 +241,7 @@ build_iteration_engine <- function(comparison, movement){
       "  ",
       "  results_temp$modifier <- rep(m.fixed, nrow(results_temp))",
       "  results<- rbind(results, results_temp)",
-      "}",
-      ""
+      "}"
     )
     
   }
