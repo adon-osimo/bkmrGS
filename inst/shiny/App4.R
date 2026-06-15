@@ -18,13 +18,13 @@ ui <- fluidPage(
       
       selectInput(
         "comparison",
-        "(What is changing?) Exposure Surface Variation",
+        "(What is changing?) Exposure Variation",
         choices = c("Overall", "Single", "Bivariate")
       ),
       
       selectInput(
         "movement",
-        "(What is being compared?) Difference Comparison:",
+        "(What is being compared?) Difference Type:",
         choices = c("Group Specific", "Between Groups")
       ),
       
