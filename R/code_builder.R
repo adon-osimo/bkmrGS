@@ -11,14 +11,14 @@ generate_code <- function(
     q.fixed = NULL,
     qs.diff = NULL,
     mod.diff = NULL,
-    qs.fixed = NULL){
+    ngrid = NULL){
   
   
   code <- c(
     build_header(exposure, analysis),
     build_data_extract(fit_name),
     build_user_changeable_data(exposure, analysis, m.fixed, qs, q.fixed,
-                               qs.diff, mod.diff, qs.fixed),
+                               qs.diff, mod.diff, ngrid),
     build_prediction_function(sel),
     build_summary_function(analysis),
     build_point_constructor(exposure, analysis),
@@ -41,7 +41,7 @@ build_data_extract <- function(fit_name){
 }
 
 build_user_changeable_data <- function(exposure, analysis, m.fixed, qs, q.fixed,
-                                       qs.diff, mod.diff, qs.fixed){
+                                       qs.diff, mod.diff, ngrid){
   ret <- c("#ALL OF THESE ARE CHANGEABLE AT YOUR DISCRESION",
            "#BE SURE THAT WHEN YOU RUN THIS CODE YOU UPDATE THE FOLLOWING LINES",
            "#TO REFLECT WHAT VALUES YOU WANT TO SEE")
@@ -65,17 +65,20 @@ build_user_changeable_data <- function(exposure, analysis, m.fixed, qs, q.fixed,
   
   if(exposure == "Single"){
     ret <- c(ret, c("",
+                    paste0("q.fixed <- ", as.character(q.fixed), " ")))
+    
+    if(analysis == "Response Function"){
+      ret <- c(ret, c("",
+                      paste0("ngrid <- ", as.character(ngrid), ""),
+                      "",
+                      "centered <- TRUE"))
+    }
+    
+    else{
+      ret <- c(ret, c("",
                     paste0("qs.diff <-", as.character(qs.diff), " ")))
-    
-    if(analysis == "Group Specific"){
-      ret <- c(ret, c("",
-                      paste0("q.fixed <- ", as.character(q.fixed), " ")))
     }
-    
-    else {
-      ret <- c(ret, c("",
-                      paste0("qs.fixed <- ", as.character(qs.fixed), " ")))
-    }
+
   }
   
   ret <- c(ret, c("",
@@ -159,6 +162,16 @@ build_point_constructor <- function(exposure, analysis){
   #  "}",
   #  ""))
   #}
+  
+  if(analysis == "Response Function"){
+    if(exposure == "Single"){
+      ret <- c(ret,c("which.mod <- levels(modifier)",
+                     "Z <- fit$Z",
+                     "z.names <- paste0('z', 1:ncol(Z))",
+                     "which.z = 1:ncol(Z)")
+      )
+    }
+  }
   
   if(analysis == "Between Groups"){
   
@@ -321,13 +334,11 @@ build_iteration_engine <- function(exposure, analysis){
   else if(exposure == "Single" && analysis == "Between Groups"){
     
     c("results <- lapply(which.z, function(j) {",
-      "  q.fixed <- qs.fixed[1]",
       "  point1 <- apply(Z_for_quants, 2, quantile, q.fixed)",
       "  point2 <- point1",
       "  point1[j] <- quantile(Z_for_quants[, j], qs.diff[1])",
       "  point2[j] <- quantile(Z_for_quants[, j], qs.diff[2])",
       "  newz.q1 <- rbind(point1, point2)",
-      "  q.fixed <- qs.fixed[2]",
       "  point1 <- apply(Z_for_quants, 2, quantile, q.fixed)",
       "  point2 <- point1",
       "  point1[j] <- quantile(Z_for_quants[, j], qs.diff[1])",
@@ -344,24 +355,61 @@ build_iteration_engine <- function(exposure, analysis){
     
   }
   
+  else if(exposure == "Single" && analysis == "Response Function"){
+    c("results <- dplyr::tibble()",
+      "for(i in which.z) {",
+      "  whichz <- i",
+      "  colnames(Z) <- paste0('z', 1:ncol(Z))",
+      "  Z_for_quants <- Z_support(Z = Z, mod.diff = levels(modifier), modifier = modifier)",
+      "  ord <- c(whichz, setdiff(1:ncol(Z_for_quants), whichz))",
+      "  z1 <- seq(min(Z_for_quants[,ord[1]]), max(Z_for_quants[,ord[1]]), length = ngrid)",
+      "  z.others <- lapply(2:ncol(Z_for_quants), function(x) quantile(Z[,ord[x]], q.fixed))",
+      "  z.all <- c(list(z1), z.others)",
+      "  newz.grid <- expand.grid(z.all)",
+      "  colnames(newz.grid) <- colnames(Z)[ord]",
+      "  newz.grid <- newz.grid[,colnames(Z)]",
+      "  if(!is.null(which.mod)){",
+      "    mod_new <- rep(which.mod, each = nrow(newz.grid))",
+      "    if(length(which.mod) > 1){",
+      "      newz.grid_tmp <- newz.grid",
+      "      z1_tmp <- z1",
+      "      for(k in 2:length(which.mod)){",
+      "        newz.grid <- rbind(newz.grid, newz.grid_tmp)",
+      "        z1 <- c(z1, z1_tmp)",
+      "      }",
+      "    }",
+      "  }",
+      "  mindists <- rep(NA,nrow(newz.grid))",
+      "  for (j in seq_along(mindists)) {",
+      "    pt <- as.numeric(newz.grid[j, colnames(Z)[ord[1]]])",
+      "    dists <- fields::rdist(matrix(pt, nrow = 1), Z_for_quants[, colnames(Z)[ord[1]]])",
+      "    mindists[j] <- min(dists)",
+      "  }",
+      "  preds <- preds.fun(znew = newz.grid, modnew = mod_new)",
+      "  preds.plot <- preds$postmean",
+      "  se.plot <- sqrt(diag(preds$postvar))",
+      "  if(centered) {",
+      "    preds.plot <- preds.plot - mean(preds.plot)", 
+      "  }",
+      "  res <- dplyr::tibble(z = z1, modifier = mod_new, est = preds.plot, se = se.plot)",
+      "  df0 <- dplyr::mutate(res, variable = z.names[i]) %>% dplyr::select_at(c('variable', 'z', 'modifier', 'est', 'se'))",
+      "  results <- dplyr::bind_rows(results, df0)",
+      "}",
+      "results$variable <- factor(df$variable, levels = z.names[which.z])")
+  }
+  
 }
 
 #Need to change this to only have the results object returned
 build_output_formatter <- function(exposure, analysis){
 
-  if(analysis == "Group Specific"){
-    
-    c("results")
-    
-  }
-  
-  else if(exposure == "Overall" && analysis == "Between Groups"){
+  if(exposure == "Overall" && analysis == "Between Groups"){
     
     c("results <- data.frame(",
       "  quantile = qs,",
       "  results",
       ")",
-      "print(results)"
+      "results"
     )
     
   }
@@ -374,6 +422,12 @@ build_output_formatter <- function(exposure, analysis){
     "})",
     "results <- do.call(rbind, results)",
     "results")
+  }
+  
+  else{
+    
+    c("results")
+    
   }
 }
 
@@ -432,6 +486,21 @@ build_plotting <- function(exposure, analysis){
       "   theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))+",
       "   xlab('CHANGE THIS X-AXIS')+",
       "   ylab('CHANGE THIS Y-AXIS')")
+  }
+  
+  else if(exposure == "Single" && analysis == "Response Function"){
+    c(
+      "plot_obj <- ggplot(results, aes(z, est, ymin = est - 1.96*se, ",
+      "                             ymax = est + 1.96*se, color = modifier, fill = modifier, linetype = modifier)) + ",
+      "  geom_smooth(stat = 'identity') + ",
+      "  geom_hline(yintercept=0)+",
+      "  facet_wrap(vars(variable)) +",
+      "  xlab('Xlab') +",
+      "  ylab('Ylab') +",
+      "  theme_classic() +",
+      "  theme(legend.position = 'bottom')+",
+      "  labs(color='modifier_name', fill = 'modifier_name', linetype = 'modifier_name')"
+    )
   }
 }
 

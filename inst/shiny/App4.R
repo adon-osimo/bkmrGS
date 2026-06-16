@@ -22,17 +22,19 @@ ui <- fluidPage(
         choices = c("Overall", "Single", "Bivariate")
       ),
       
-      selectInput(
-        "analysis",
-        "(What is being compared?) Difference Type:",
-        choices = c("Group Specific", "Between Groups")
-      ),
+      #selectInput(
+      #  "analysis",
+      #  "(What is being compared?) Difference Type:",
+      #  choices = c("Group Specific", "Between Groups", "Response Function")
+      #),
       
+      uiOutput("analysis_ui"),
       uiOutput("exposure_Overall"),
       uiOutput("analysis_GS"),
       uiOutput("analysis_BG"),
       uiOutput("exposure_Single_1"),
       uiOutput("exposure_Single_2"),
+      uiOutput("analysis_er"),
       
       actionButton(
         "prev",
@@ -105,6 +107,47 @@ server <- function(input, output, session){
     
   })
   
+  output$analysis_ui <- renderUI({
+    
+    req(input$exposure)
+    
+    if(input$exposure == "Overall"){
+      
+      selectInput(
+        "analysis",
+        "(What is being compared?)",
+        choices = c(
+          "Group Specific",
+          "Between Groups"
+        )
+      )
+      
+    } else if(input$exposure == "Single"){
+      
+      selectInput(
+        "analysis",
+        "(What is being compared?)",
+        choices = c(
+          "Group Specific",
+          "Between Groups",
+          "Response Function"
+        )
+      )
+      
+    } else if(input$exposure == "Bivariate"){
+      
+      selectInput(
+        "analysis",
+        "(What is being compared?)",
+        choices = c(
+          "Response Function"
+        )
+      )
+      
+    }
+    
+  })
+  
   output$exposure_Overall <- renderUI({
     
     req(fit())
@@ -113,7 +156,7 @@ server <- function(input, output, session){
       return(NULL)
     }
     
-    if(input$exposure == "Single"){
+    if(input$exposure != "Overall"){
       return(NULL)
     }
     
@@ -133,14 +176,6 @@ server <- function(input, output, session){
           max = 1,
           step = 0.05
         )
-      
-      #else {
-      #  textInput(
-      #    "q.fixed",
-      #    "(q.fixed multiple) exposure Quantiles (e.g. c(0.25, 0.5, 0.75) or seq(0.25, 0.75, by = 0.05))",
-      #    value = "c(0.25, 0.75)"
-      #  )
-      #}
 
     )
     
@@ -154,7 +189,7 @@ server <- function(input, output, session){
       return(NULL)
     }
     
-    if(input$analysis == "Between Groups"){
+    if(input$analysis != "Group Specific"){
       return(NULL)
     }
     
@@ -178,7 +213,7 @@ server <- function(input, output, session){
       return(NULL)
     }
     
-    if(input$analysis == "Group Specific"){
+    if(input$analysis != "Between Groups"){
       return(NULL)
     }
     
@@ -247,15 +282,52 @@ server <- function(input, output, session){
         value = "c(0.25, 0.75)"
       ), 
       
-      textInput(
-        "qs.fixed",
-        "(qs.fixed) Quantiles to Be Fixed",
-        value = "c(0.5, 0.5)"
+      numericInput(
+        "q.fixed",
+        "(q.fixed) Quantile Fixed At",
+        value = 0.5,
+        min = 0,
+        max = 1,
+        step = 0.05
       )
       
     )
     
   }) 
+  
+  output$analysis_er <- renderUI({
+    req(fit())
+    
+    if(is.null(fit()$modifier)){
+      return(NULL)
+    }
+    
+    if(!(input$analysis == "Response Function" && input$exposure == "Single")){
+      return(NULL)
+    }
+    
+    tagList(
+    
+      numericInput(
+        "ngrid",
+        "(ngrid) Ngrid",
+        value = 50,
+        min = 1,
+        max = 100,
+        step = 1
+      ),
+      
+      numericInput(
+        "q.fixed",
+        "Quantile Fixed At",
+        value = 0.5,
+        min = 0,
+        max = 1,
+        step = 0.05
+      )
+    )
+    
+  })
   
   #---------------------------------------
   # Generate code
@@ -272,8 +344,8 @@ server <- function(input, output, session){
       qs = input$qs,
       q.fixed = input$q.fixed,
       qs.diff = input$qs.diff, 
-      mod.diff = input$mod.diff, 
-      qs.fixed = input$qs.fixed
+      mod.diff = input$mod.diff,
+      ngrid = input$ngrid
     )
   })
   
@@ -290,8 +362,8 @@ server <- function(input, output, session){
       qs = input$qs,
       q.fixed = input$q.fixed,      
       qs.diff = input$qs.diff, 
-      mod.diff = input$mod.diff, 
-      qs.fixed = input$qs.fixed
+      mod.diff = input$mod.diff,
+      ngrid = input$ngrid
     )
   })
   
@@ -328,8 +400,16 @@ server <- function(input, output, session){
   
   output$results_table <- renderTable({
     
-    env <- plot_env()
+    if(input$go > input$prev){
+      env <- plot_env()
+    } else if(input$prev > 0){
+      env <- plot_preview()
+    } else{
+      return(NULL)
+    }
+    
     env$results
+  
   })
   
 }
