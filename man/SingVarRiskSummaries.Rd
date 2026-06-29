@@ -6,10 +6,6 @@
 \usage{
 SingVarRiskSummaries(
   fit,
-  y = NULL,
-  Z = NULL,
-  X = NULL,
-  modifier = NULL,
   which.z = 1:ncol(Z),
   qs.diff = c(0.25, 0.75),
   q.fixed = c(0.25, 0.5, 0.75),

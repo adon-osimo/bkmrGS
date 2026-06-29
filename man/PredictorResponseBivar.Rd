@@ -6,10 +6,6 @@
 \usage{
 PredictorResponseBivar(
   fit,
-  y = NULL,
-  Z = NULL,
-  X = NULL,
-  modifier = NULL,
   z.pairs = NULL,
   method = "approx",
   ngrid = 50,
