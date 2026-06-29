@@ -1,5 +1,5 @@
 Package: bkmrGS
-Type: package
+Type: Package
 Title: Bayesian Kernel Machine Regression with Group Separable Kernel
 Version: 0.1.0
 Authors@R: c(person(given = "Danielle",
@@ -38,8 +38,8 @@ Imports:
     tibble,
     shiny,
     bslib
-RoxygenNote: 7.3.3
 Suggests: 
     knitr,
     rmarkdown
 VignetteBuilder: knitr
+Config/roxygen2/version: 8.0.0
