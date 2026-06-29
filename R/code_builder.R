@@ -1,3 +1,17 @@
+#' Creates a text file of plotting code 
+#' 
+#' Takes a specified exposure type, and analysis and returns copy and pasteable code text, which when executed will return results and plot objects
+#' @param fit_name The name of a current fitted object in the environment
+#' @param exposure exposure type for what change in exposure is being measured. Options are 'Overall', 'Single' and 'Bivariate'; defaults to 'Overall'
+#' @param analysis analysis type, describes what difference we are looking at. Options are 'Group Specific', 'Between Groups', and 'Response Function'; defaults to 'Group Specific'
+#' @param centered defaults to NULL
+#' @param sel defaults to 'NULL'
+#' @param m.fixed defaults to NULL
+#' @param qs defaults to NULL
+#' @param q.fixed defaults to NULL
+#' @param qs.diff defaults to NULL
+#' @param mod.diff defaults to NULL
+#' @param ngrid defaults to NULL
 #' 
 #' @export
 generate_code <- function(
@@ -163,11 +177,25 @@ build_point_constructor <- function(exposure, analysis){
   #  ""))
   #}
   
+  if(analysis == "Group Specific"){
+    
+    if(exposure == "Single"){
+      ret <- c(ret, c(
+              "# Single-variable Overall settings",
+              "Z <- fit$Z",
+              "which.z <- 1:ncol(Z)",
+              "z.names <- colnames(Z)",
+              ""))
+    }
+    
+  }
+  
   if(analysis == "Response Function"){
     if(exposure == "Single"){
-      ret <- c(ret,c("which.mod <- levels(modifier)",
-                     "Z <- fit$Z",
+      ret <- c(ret,c("Z <- fit$Z",
+                     "modifier <- fit$modifier",
                      "z.names <- paste0('z', 1:ncol(Z))",
+                     "which.mod <- levels(modifier)",
                      "which.z = 1:ncol(Z)")
       )
     }
@@ -197,6 +225,7 @@ build_point_constructor <- function(exposure, analysis){
     if(exposure == "Single"){
       
       ret <- c(ret, c(
+        "Z <- fit$Z",
         "which.z <- 1:ncol(Z)",
         "z.names <- colnames(Z)"
       ))
@@ -206,7 +235,7 @@ build_point_constructor <- function(exposure, analysis){
     
     ret <- c(ret, c("# Restrict exposure support",
                     "Z_for_quants <- Z_support(",
-                    "  Z = Z,",
+                    "  Z = fit$Z,",
                     "  mod.diff = mod.diff,",
                     "  modifier = fit$modifier",
                     ")",
@@ -221,7 +250,8 @@ build_point_constructor <- function(exposure, analysis){
 build_iteration_engine <- function(exposure, analysis){
   if(exposure == "Overall" && analysis == "Group Specific"){
     
-    c("if(m.fixed == 'All'){",
+    c("Z <- fit$Z",
+      "if(m.fixed == 'All'){",
       "   iter_over <- c(unique(as.character(fit$modifier)))",
       "} else{",
       "   iter_over <- c(m.fixed)}",
@@ -272,7 +302,7 @@ build_iteration_engine <- function(exposure, analysis){
       "  Z_for_quants <- Z[fit$modifier == m.fixed, ]",
       "  results_tmp <-  lapply(seq_along(q.fixed), function(i) {",
       "    lapply(seq_along(which.z), function(j) {",
-      "      point1 <- apply(Z_for_quants, 2, quantile, q.fixed[i])",
+      "      point1 <- apply(Z_for_quants, 2, quantile, q.fixed)",
       "      point2 <- point1",
       "      point1[which.z[j]] <- quantile(",
       "        Z_for_quants[, which.z[j]],",
@@ -289,7 +319,7 @@ build_iteration_engine <- function(exposure, analysis){
       "        preds.fun = preds.fun",
       "      )",
       "      data.frame(",
-      "        q.fixed = q.fixed[i],",
+      "        q.fixed = q.fixed,",
       "        variable = z.names[j],",
       "        t(out)",
       "      )",
@@ -395,7 +425,7 @@ build_iteration_engine <- function(exposure, analysis){
       "  df0 <- dplyr::mutate(res, variable = z.names[i]) %>% dplyr::select_at(c('variable', 'z', 'modifier', 'est', 'se'))",
       "  results <- dplyr::bind_rows(results, df0)",
       "}",
-      "results$variable <- factor(df$variable, levels = z.names[which.z])")
+      "results$variable <- factor(results$variable, levels = z.names[which.z])")
   }
   
 }
@@ -506,9 +536,77 @@ build_plotting <- function(exposure, analysis){
 
 
 
+#' Creates a text file of interpretation code 
+#' 
+#' Takes a specified exposure type, and analysis and returns copy and pasteable code text, which when executed will return results and plot objects
+#' @param exposure exposure type for what change in exposure is being measured. Options are 'Overall', 'Single' and 'Bivariate'; defaults to 'Overall'
+#' @param analysis analysis type, describes what difference we are looking at. Options are 'Group Specific', 'Between Groups', and 'Response Function'; defaults to 'Group Specific'
+#' 
+#' @export
+generate_interpretation <- function(exposure, analysis){
+  
+  ret <- c()
 
+  if(exposure == "Overall" && analysis == "Group Specific"){
+    ret <- c(ret, c("For a fixed modifier group \\(w\\), it evaluates the change in the outcome when the entire exposure mixture is set to a specified quantile level, relative to a reference quantile level. Mathematically this corresponds to:",
+                    ""  ,
+                    "$$h_{w}(Z^{qs}) - h_{w}(Z^{q.fixed})$$",
+                    ""  ,
+                    "where \\(h_w (Z)\\) denotes the group-specific exposure-response function,\\(Z^{qs}\\) represents all exposures jointly set to the specified quantiles, and\\(Z^{q.fixed}\\) represents the exposures set to the reference quantiles. ",
+                    "",
+                    "The estimated value (`est`) can be interpreted as the expected change in the outcome for modifier group \\(w\\) when the exposure mixture shifts jointly from the reference quantile to the specified quantile. Graphically, we see these estimates as a point, surrounded by a Wald confidence interval. "))
+  }
+  
+  if(exposure == "Single" && analysis == "Group Specific"){
+    ret <- c(ret, c("For a fixed modifier group \\(w\\), it evaluates the change in the outcome when the a single exposure is set to a specified quantile level, relative to all other exposures being set to a reference quantile level. Mathematically this corresponds to:",
+                    ""  ,
+                    "$$h_{w}(Z_1^{q.fixed}, …, Z_k^{qs.diff[1]},...,Z_n^{q.fixed}) - h_{w}(Z_1^{q.fixed}, …, Z_k^{qs.diff[2]},...,Z_n^{q.fixed})$$",
+                    ""  ,
+                    "where \\(h_w (Z)\\) denotes the group-specific exposure-response function, \\(Z_k^{qs.diff}\\) represents a specific exposure (\\k\\) set to the specified quantiles, and \\(Z_k^{q.fixed}\\) represents a specific exposure (\\k\\) set to the reference quantiles. ",
+                    "",
+                    "The estimated value (`est`) can be interpreted as the expected changein the outcome for modifier group \\(w\\) when the isolated exposure shiftsfrom the first difference quantile to the second difference quantile, while holding every other exposure at the reference quantile. Graphically,we see these estimates as a point, surrounded by a Wald confidence interval."))
+  }
+  
+  if(exposure == "Overall" && analysis == "Between Groups"){
+    ret <- c(ret, c("This function evaluates the overall mixture effect differs between modifier groups when the entire exposure mixture is shifted from a reference quantile level to a specified quantile level. Mathematically this corresponds to:",
+                    ""  ,
+                    "$$(h_{w_1}(Z^{qs}) - h_{w_1}(Z^{q.fixed})) - (h_{w_2}(Z^{qs}) - h_{w_2}(Z^{q.fixed}))$$",
+                    ""  ,
+                    "where \\(h_w (Z)\\) denotes the group-specific exposure-response function jointly set to the specified quantile level, and \\(Z^{qs}\\) represents all exposures jointly set to the specified quantiles, and \\(Z^{q.fixed}\\) represents the exposures set to the reference quantiles.",
+                    "",
+                    "The estimated effect (`est`) measures the difference in overall mixture effects between modifier groups  \\(w_1\\) and \\(w_2\\). Specifically, it represents how much larger the expected change in the outcome associated with shifting the entire exposure mixture from \\(q.fixed\\) to \\(qs\\) is in group \\(w_1\\) compared with group \\(w_2\\)"
+    ))
+  }
 
+  
+  if(exposure == "Single" && analysis == "Between Groups"){
+    ret <- c(ret, c("This function evaluates how the effect of a single exposure differs between modifier groups while holding all other exposures fixed at a reference quantile level. Mathematically, this corresponds to",
+                    "",
+                    "$$(h_{w_1}(Z_1^{q.fixed}, …, Z_k^{qs.diff[1]},...,Z_n^{q.fixed}) - h_{w_1}(Z_1^{q.fixed}, …, Z_k^{qs.diff[1]},...,Z_n^{q.fixed}) - $$",
+                    "$$(h_{w_2}(Z_1^{q.fixed}, …, Z_k^{qs.diff[1]},...,Z_n^{q.fixed}) - h_{w_2}(Z_1^{q.fixed}, …, Z_k^{qs.diff[1]},...,Z_n^{q.fixed})).$$",
+                    "" ,
+                    "Here, \\(h_w(Z)\\) denotes the group-specific exposure-response function, \\(z_m^{qs_1}\\) and \\(z_m^{qs_2}\\) represent the selected exposure set to the lower and upper quantiles specified by `qs.diff`, and \\(Z_{-m}^{q.fixed}\\) represents all remaining exposures held fixed at the reference quantile level.",
+                    "",
+                    "The estimated effect (`est`) measures the difference in the single-exposure effect between modifier groups \\(w_1\\) and \\(w_2\\). Specifically, it represents how much larger (or smaller) the expected change in the outcome associated with increasing the selected exposure from \\(qs_1\\) to \\(qs_2\\) is in group \\(w_1\\) compared with group \\(w_2\\), while all other exposures remain fixed.",
+                    ""))
+  }
 
-
-
+  if(exposure == "Single" && analysis == "Response Function"){
+    ret <- c(ret, c(
+      "This function estimates the exposure-response relationship for a single exposure within each modifier group while holding all remaining exposures fixed at a reference quantile level. Mathematically, this corresponds to:",
+      "",
+      "$$h_w(Z_1^{q.fixed},...,Z_k,..., Z_m^{q.fixed})$$",
+      "",
+      "where \\(h_w(Z)\\) denotes the group-specific exposure-response function, \\(Z_k\\) is the exposure being varied across its observed range, and \\(Z_{m}^{q.fixed}\\) represents all remaining exposures held fixed at the reference quantile level.",
+      "",
+      "The resulting curves describe the expected outcome as the selected exposure changes while all other exposures remain fixed. Separate curves are estimated for each modifier group, allowing direct visualization of differences in exposure-response relationships across groups.",
+      "",
+      "Differences in the shape, slope, or magnitude of the curves suggest that the association between the selected exposure and the outcome varies across modifier groups."
+    ))
+    
+  }
+  
+  paste(ret, collapse = "<br/>")
+  
+}
 
