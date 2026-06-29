@@ -62,6 +62,8 @@ bkmrGS(
 \item{gs.sig}{TRUE or FALSE: indicator for whether to estimate separate error variance terms for each group. Only available for the group-separable method (\code{kernel.method = "two"})}
 
 \item{burnin}{An integer that specifies how many observation will be discarded for burnin.}
+
+\item{Znew}{new Z's if you want?}
 }
 \value{
 an object of class "bkmrfit" (containing the posterior samples from the model fit), which has the associated methods:

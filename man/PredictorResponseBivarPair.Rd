@@ -26,6 +26,14 @@ PredictorResponseBivarPair(
 \arguments{
 \item{fit}{An object containing the results returned by a the \code{kmbayes} function}
 
+\item{y}{a vector of outcome data of length \code{n}, inherited by bkmrGS.}
+
+\item{Z}{an \code{n}-by-\code{M} matrix of predictor variables to be included in the \code{h} function. Each row represents an observation and each column represents an predictor, inherited by bkmrGS.}
+
+\item{X}{an \code{n}-by-\code{K} matrix of covariate data where each row represents an observation and each column represents a covariate. Should not contain an intercept column, inherited by bkmrGS.}
+
+\item{modifier}{a vector categorical values of length \code{n} that may modify the exposure-response associations. Control level ordering by using class \code{factor}, or use default level orders with any vector class, inherited by bkmrGS.}
+
 \item{whichz1}{vector identifying the first predictor that (column of \code{Z}) should be plotted}
 
 \item{whichz2}{vector identifying the second predictor that (column of \code{Z}) should be plotted}
