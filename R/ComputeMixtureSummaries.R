@@ -63,20 +63,14 @@ interactionSummary.approx <- function(newz.q1, newz.q2, modnew.1, modnew.2, pred
 #' risks.overall <- OverallRiskSummaries(fitkm, qs = c(0.25, 0.75), 
 #' q.fixed = 0.5, 
 #' m.fixed = "male", method = "fullpost")
-OverallRiskSummaries <- function(fit, y = NULL, Z = NULL, X = NULL, 
-                                 modifier = NULL, 
-                                 qs = seq(0.25, 0.75, by = 0.05), 
+OverallRiskSummaries <- function(fit, qs = seq(0.25, 0.75, by = 0.05), 
                                  q.fixed = 0.5, m.fixed = NULL,
                                  method = "fullpost", sel = NULL) {
   
   if (inherits(fit, "bkmrfit")) {
-    if (is.null(y)) 
       y <- fit$y
-    if (is.null(Z)) 
       Z <- fit$Z
-    if (is.null(X)) 
       X <- fit$X
-    if (is.null(modifier)) 
       modifier <- fit$modifier   
   }
   
@@ -160,20 +154,15 @@ OverallRiskSummaries <- function(fit, y = NULL, Z = NULL, X = NULL,
 
 #used in SingVarRiskSummaries() below
 #Compare estimated \code{h} function when a single variable (or a set of variables) is at the 75th versus 25th percentile, when all of the other variables are fixed at a particular percentile
-VarRiskSummary <- function (whichz = 1, fit, y = NULL, Z = NULL, X = NULL,
-                            modifier = NULL, qs.diff = c(0.25, 0.75), 
+VarRiskSummary <- function (whichz = 1, y = NULL, Z = NULL, X = NULL, modifier = NULL, fit, qs.diff = c(0.25, 0.75), 
                             q.fixed = 0.5, method = "fullpost", m.fixed = NULL, 
                             sel = NULL, ...){ 
   
   if (inherits(fit, "bkmrfit")) {
-    if (is.null(y)) 
-      y <- fit$y
-    if (is.null(Z)) 
-      Z <- fit$Z
-    if (is.null(X)) 
-      X <- fit$X
-    if(is.null(modifier))
-      modifier <- fit$modifier
+    if (is.null(y)) y <- fit$y
+    if (is.null(Z)) Z <- fit$Z
+    if (is.null(X)) X <- fit$X
+    if (is.null(modifier)) modifier <- fit$modifier
   }
   
   # #convert modifier to factor and construct contrast matrix
@@ -274,22 +263,17 @@ VarRiskSummary <- function (whichz = 1, fit, y = NULL, Z = NULL, X = NULL,
 #'                         
 #' risks.singvar <- SingVarRiskSummaries(fitkm, qs.diff = c(0.25, 0.75), 
 #' q.fixed = 0.5, m.fixed = "male", method = "exact")
-SingVarRiskSummaries <- function(fit, y = NULL, Z = NULL, X = NULL, 
-                                 modifier = NULL, which.z = 1:ncol(Z),
+SingVarRiskSummaries <- function(fit,  which.z = 1:ncol(Z),
                                  qs.diff = c(0.25, 0.75), 
                                  q.fixed = c(0.25, 0.50, 0.75), 
                                  m.fixed = NULL, method = "fullpost", 
                                  sel = NULL, z.names = colnames(Z), ...) {
   
   if (inherits(fit, "bkmrfit")) {
-    if (is.null(y)) 
-      y <- fit$y
-    if (is.null(Z)) 
-      Z <- fit$Z
-    if (is.null(X)) 
-      X <- fit$X
-    if(is.null(modifier)) 
-      modifier <- fit$modifier 
+    y <- fit$y
+    Z <- fit$Z
+    X <- fit$X
+    modifier <- fit$modifier   
   }
   
   # #convert modifier to factor and construct contrast matrix - not needed because happens in VarRiskSummary()
@@ -345,8 +329,7 @@ SingVarRiskSummaries <- function(fit, y = NULL, Z = NULL, X = NULL,
 }
 
 #used in SingVarIntSummaries() below
-SingVarIntSummary <- function(whichz = 1, fit, y = NULL, Z = NULL, 
-                              X = NULL, modifier = NULL, 
+SingVarIntSummary <- function(whichz = 1, y = NULL, Z = NULL, X = NULL, modifier = NULL, fit,  
                               qs.diff = c(0.25, 0.75), 
                               qs.fixed = c(0.25, 0.75), mod.diff = NULL,
                               method = "fullpost", sel = NULL, ...) {
@@ -454,18 +437,17 @@ SingVarIntSummary <- function(whichz = 1, fit, y = NULL, Z = NULL,
 #'                         
 #' risks.int <- SingVarIntSummaries(fitkm, qs.diff = c(0.25, 0.75), 
 #' qs.fixed = c(0.5,0.5), mod.diff = c("male", "female"), method = "exact")
-SingVarIntSummaries <- function(fit, y = NULL, Z = NULL, X = NULL,
-                                modifier = NULL, which.z = 1:ncol(Z), 
+SingVarIntSummaries <- function(fit,  which.z = 1:ncol(Z), 
                                 qs.diff = c(0.25, 0.75), 
                                 qs.fixed = c(0.25, 0.75), 
                                 mod.diff = NULL, method = "fullpost", 
                                 sel = NULL, z.names = colnames(Z), ...) {
   
   if (inherits(fit, "bkmrfit")) {
-    if (is.null(y)) y <- fit$y
-    if (is.null(Z)) Z <- fit$Z
-    if (is.null(X)) X <- fit$X
-    if (is.null(modifier)) modifier <- fit$modifier
+     y <- fit$y
+     Z <- fit$Z
+     X <- fit$X
+     modifier <- fit$modifier
   }
   
   #convert modifier to factor and construct contrast matrix
@@ -507,8 +489,7 @@ SingVarIntSummaries <- function(fit, y = NULL, Z = NULL, X = NULL,
 }
 
 #used in OverallIntSummaries() below
-OverallIntSummary <- function(whichz = 1, fit, y = NULL, Z = NULL, 
-                              X = NULL, modifier = NULL, 
+OverallIntSummary <- function(whichz = 1, y = NULL, Z = NULL, X = NULL, modifier = NULL, fit, 
                               qs = 0.25, q.fixed = 0.5, mod.diff = NULL,
                               method = "fullpost", sel = NULL, ...) {
   
@@ -600,17 +581,16 @@ OverallIntSummary <- function(whichz = 1, fit, y = NULL, Z = NULL,
 #'                         
 #' risks.int <- OverallIntSummaries(fitkm, qs = c(0.25, 0.75), 
 #' q.fixed = 0.5, mod.diff = c("male", "female"), method = "fullpost")
-OverallIntSummaries <- function(fit, y = NULL, Z = NULL, X = NULL,
-                                modifier = NULL, which.z = 1:ncol(Z), 
+OverallIntSummaries <- function(fit, which.z = 1:ncol(Z), 
                                 qs = seq(0.25, 0.75,0.05), mod.diff,
                                 q.fixed = 0.5, method = "fullpost", 
                                 sel = NULL, z.names = colnames(Z), ...) {
   
   if (inherits(fit, "bkmrfit")) {
-    if (is.null(y)) y <- fit$y
-    if (is.null(Z)) Z <- fit$Z
-    if (is.null(X)) X <- fit$X
-    if (is.null(modifier)) modifier <- fit$modifier
+    y <- fit$y
+    Z <- fit$Z
+    X <- fit$X
+    modifier <- fit$modifier   
   }
   
   # #convert modifier to factor and construct contrast matrix
