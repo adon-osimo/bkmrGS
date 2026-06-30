@@ -560,7 +560,7 @@ generate_interpretation <- function(exposure, analysis){
   if(exposure == "Single" && analysis == "Group Specific"){
     ret <- c(ret, c("For a fixed modifier group \\(w\\), it evaluates the change in the outcome when the a single exposure is set to a specified quantile level, relative to all other exposures being set to a reference quantile level. Mathematically this corresponds to:",
                     ""  ,
-                    "$$h_{w}(Z_1^{q.fixed}, …, Z_k^{qs.diff[1]},...,Z_n^{q.fixed}) - h_{w}(Z_1^{q.fixed}, …, Z_k^{qs.diff[2]},...,Z_n^{q.fixed})$$",
+                    "$$h_{w}(Z_1^{q.fixed}, . . . , Z_k^{qs.diff[1]},. . .,Z_n^{q.fixed}) - h_{w}(Z_1^{q.fixed}, . . ., Z_k^{qs.diff[2]},. . . ,Z_n^{q.fixed})$$",
                     ""  ,
                     "where \\(h_w (Z)\\) denotes the group-specific exposure-response function, \\(Z_k^{qs.diff}\\) represents a specific exposure (\\k\\) set to the specified quantiles, and \\(Z_k^{q.fixed}\\) represents a specific exposure (\\k\\) set to the reference quantiles. ",
                     "",
@@ -582,8 +582,8 @@ generate_interpretation <- function(exposure, analysis){
   if(exposure == "Single" && analysis == "Between Groups"){
     ret <- c(ret, c("This function evaluates how the effect of a single exposure differs between modifier groups while holding all other exposures fixed at a reference quantile level. Mathematically, this corresponds to",
                     "",
-                    "$$(h_{w_1}(Z_1^{q.fixed}, …, Z_k^{qs.diff[1]},...,Z_n^{q.fixed}) - h_{w_1}(Z_1^{q.fixed}, …, Z_k^{qs.diff[1]},...,Z_n^{q.fixed}) - $$",
-                    "$$(h_{w_2}(Z_1^{q.fixed}, …, Z_k^{qs.diff[1]},...,Z_n^{q.fixed}) - h_{w_2}(Z_1^{q.fixed}, …, Z_k^{qs.diff[1]},...,Z_n^{q.fixed})).$$",
+                    "$$(h_{w_1}(Z_1^{q.fixed}, . . . , Z_k^{qs.diff[1]},...,Z_n^{q.fixed}) - h_{w_1}(Z_1^{q.fixed}, . . ., Z_k^{qs.diff[1]},...,Z_n^{q.fixed}) - $$",
+                    "$$(h_{w_2}(Z_1^{q.fixed}, . . ., Z_k^{qs.diff[1]},...,Z_n^{q.fixed}) - h_{w_2}(Z_1^{q.fixed}, . . ., Z_k^{qs.diff[1]},...,Z_n^{q.fixed})).$$",
                     "" ,
                     "Here, \\(h_w(Z)\\) denotes the group-specific exposure-response function, \\(z_m^{qs_1}\\) and \\(z_m^{qs_2}\\) represent the selected exposure set to the lower and upper quantiles specified by `qs.diff`, and \\(Z_{-m}^{q.fixed}\\) represents all remaining exposures held fixed at the reference quantile level.",
                     "",
