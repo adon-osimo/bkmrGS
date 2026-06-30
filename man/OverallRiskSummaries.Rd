@@ -14,6 +14,8 @@ OverallRiskSummaries(
 )
 }
 \arguments{
+\item{fit}{the fit object}
+
 \item{qs}{vector of quantiles at which to calculate the overall risk summary}
 
 \item{q.fixed}{a second quantile at which to compare the estimated \code{h} function}

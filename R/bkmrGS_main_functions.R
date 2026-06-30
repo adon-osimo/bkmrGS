@@ -835,7 +835,6 @@ kmbayesBlocked <- function(y, Z, X,
 #' Fits the Bayesian kernel machine regression (BKMR) model with group-separable kernel or with standard kernel using Markov chain Monte Carlo (MCMC) methods.
 #'
 #' @export
-#'
 #' @param formula a formula
 #' @param data a data frame
 #' @param iter number of iterations to run the sampler

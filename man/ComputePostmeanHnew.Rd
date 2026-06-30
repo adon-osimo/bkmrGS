@@ -17,11 +17,13 @@ ComputePostmeanHnew(
 )
 }
 \arguments{
-\item{y}{a vector of outcome data of length \code{n}, inherited by bkmrGS.}
+\item{fit}{a fitted object of the type bkmrGS}
 
-\item{Z}{an \code{n}-by-\code{M} matrix of predictor variables to be included in the \code{h} function. Each row represents an observation and each column represents an predictor, inherited by bkmrGS.}
+\item{y}{a vector of outcome data of length \code{n}.}
 
-\item{X}{an \code{n}-by-\code{K} matrix of covariate data where each row represents an observation and each column represents a covariate. Should not contain an intercept column, inherited by bkmrGS.}
+\item{Z}{an \code{n}-by-\code{M} matrix of predictor variables to be included in the \code{h} function. Each row represents an observation and each column represents an predictor.}
+
+\item{X}{an \code{n}-by-\code{K} matrix of covariate data where each row represents an observation and each column represents a covariate. Should not contain an intercept column.}
 
 \item{modifier}{a vector categorical values of length \code{n} that may modify the exposure-response associations. Control level ordering by using class \code{factor}, or use default level orders with any vector class, inherited by bkmrGS.}
 
