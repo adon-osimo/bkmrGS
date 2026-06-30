@@ -835,9 +835,9 @@ kmbayesBlocked <- function(y, Z, X,
 #' Fits the Bayesian kernel machine regression (BKMR) model with group-separable kernel or with standard kernel using Markov chain Monte Carlo (MCMC) methods.
 #'
 #' @export
-#' @param formula a formula
-#' @param data a data frame
-#' @param iter number of iterations to run the sampler
+#' @param formula A model formula specifying the outcome, exposure mixture, and any additional covariates. The exposure mixture must be wrapped in \code{h()}, and be similar to \code{y ~ h(z1, z2, z3, mod = modifier) + x1 + x2 + x3}
+#' @param data A data frame containing the variables referenced in \code{formula}, all variables used inthe model must be present in this data frame
+#' @param iter An integer specifying the total number of MCMC to perform, including burn-in
 #' @param family a description of the error distribution and link function to be used in the model. Currently implemented for \code{gaussian} and \code{binomial} families.
 #' @param id optional vector (of length \code{n}) of grouping factors for fitting a model with a random intercept. If NULL then no random intercept will be included.
 #' @param verbose TRUE or FALSE: flag indicating whether to print intermediate diagnostic information during the model fitting.
@@ -853,7 +853,7 @@ kmbayesBlocked <- function(y, Z, X,
 #' @param gs.tau TRUE or FALSE: indicator for whether to use group-specific tau parameters, only available for the group-separable method (\code{kernel.method = "two"})
 #' @param gs.sig TRUE or FALSE: indicator for whether to estimate separate error variance terms for each group. Only available for the group-separable method (\code{kernel.method = "two"})
 #' @param burnin An integer that specifies how many observation will be discarded for burnin. 
-#' @param Znew new Z's if you want? 
+#' @param Znew matrix of new predictor values at which to predict new \code{h}, where each row represents a new observation. If set to NULL then will default to using the observed exposures Z.
 #' @return an object of class "bkmrfit" (containing the posterior samples from the model fit), which has the associated methods:
 #' \itemize{
 #'   \item \code{\link{print}} (i.e., \code{\link{print.bkmrfit}}) 

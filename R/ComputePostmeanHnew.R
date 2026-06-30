@@ -1,6 +1,6 @@
 #' Compute the posterior mean and variance of \code{h} at a new predictor values
 #'
-#' @param fit a fitted object of the type bkmrGS
+#' @param fit an object of class "bkmrfit"
 #' @param y a vector of outcome data of length \code{n}.
 #' @param Z an \code{n}-by-\code{M} matrix of predictor variables to be included in the \code{h} function. Each row represents an observation and each column represents an predictor.
 #' @param X an \code{n}-by-\code{K} matrix of covariate data where each row represents an observation and each column represents a covariate. Should not contain an intercept column.

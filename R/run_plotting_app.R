@@ -1,4 +1,4 @@
-#' Launch the BKMR Shiny App
+#' Launch the group-separable BKMR Shiny App
 #'
 #' @export
 plotting_app <- function() {

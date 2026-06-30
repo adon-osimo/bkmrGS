@@ -43,7 +43,7 @@ interactionSummary.approx <- function(newz.q1, newz.q2, modnew.1, modnew.2, pred
 #' @inheritParams bkmrGS
 #' @inheritParams ComputePostmeanHnew
 #' @inherit ComputePostmeanHnew details
-#' @param fit the fit object
+#' @param fit an object of class "bkmrfit" 
 #' @param qs vector of quantiles at which to calculate the overall risk summary 
 #' @param q.fixed a second quantile at which to compare the estimated \code{h} function
 #' @param m.fixed the modifier value at which to compare the estimated \code{h} function
