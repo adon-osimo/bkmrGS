@@ -378,7 +378,7 @@ server <- function(input, output, session){
           
           div(
             style = "white-space: pre-wrap;",
-            withMathJax(HTML(generate_interpretation(x[[1]], x[[2]])))
+            withMathJax(HTML(bkmrGS::generate_interpretation(x[[1]], x[[2]])))
           )
         )
       })
@@ -392,7 +392,7 @@ server <- function(input, output, session){
   })
 
   generated_code_preview <- eventReactive(input$prev, {
-    generate_code(
+    bkmrGS::generate_code(
       fit_name = input$fit_name,
       exposure = input$exposure,
       analysis = input$analysis,
@@ -411,7 +411,7 @@ server <- function(input, output, session){
     
     req(input$fit_name)
     
-    generate_code(
+    bkmrGS::generate_code(
       fit_name = input$fit_name,
       exposure = input$exposure,
       analysis = input$analysis,
