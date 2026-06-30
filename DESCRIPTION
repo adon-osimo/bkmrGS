@@ -26,20 +26,17 @@ Encoding: UTF-8
 LazyData: true
 Imports:
     dplyr,
-    ggplot2,
     magrittr,
     nlme,
     fields,
     truncnorm,
     tidyr,
-    MASS,
-    mvtnorm,
     tmvtnorm,
     tibble,
-    shiny,
-    bslib
+    shiny
 Suggests: 
     knitr,
-    rmarkdown
+    rmarkdown,
+    ggplot2
 VignetteBuilder: knitr
 Config/roxygen2/version: 8.0.0
