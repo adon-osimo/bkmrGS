@@ -47,7 +47,7 @@ The `bkmrGS` package is built off the `bkmr` package, but does
 not have all of the functionality of that package. Currently the 
 `'method = approx'` function argument has not been implemented for all functions
 (see "Changing Methods" in the "User Implemented Changes" section for more).  
-Additionally, it would be faster to run standard BKMR through the `bkmr` package, however you can  run the same analysis through `bkmrGS::bkmrGS` by setting `mod = NULL`.
+Additionally, it would be faster to run standard BKMR through the `bkmr` package, however the same analysis can be run through `bkmrGS::bkmrGS` by setting `mod = NULL`.
 
 ## Standard bkmr
 
@@ -156,7 +156,7 @@ Here is a quick demonstration of the difference between standard BKMR
 and the group separable version of BKMR. In this example we know that
 the exposure response relationship differs by child sex. However
 standard BKMR ignores this relationship and assumes a common exposure
-response surface across all subjects. This first plot uses our example
+response surface across all subjects. This first plot uses the example
 data (which we elaborate on later) and shows the results from improperly
 fitting it with standard `bkmr`.
 
@@ -229,7 +229,7 @@ head(Liu_data)
 ## Model Fitting {#model-fitting}
 
 Now fit the model with the `bkmrGS()` function. Typically, we would like to see at least 1,000
-usable iterations, but this largely depends on your effective sample
+usable iterations, but this largely depends on the effective sample
 size and model convergence. To check model convergence, see [Model
 Checking](#model-checking). Here, `bkmrGS()` takes the
 arguments
@@ -237,24 +237,23 @@ arguments
 -   `formula` a formula which takes the form of
     `y ~ h(Z_1,..., Z_k, mod = modifier_name) + X_1 +...+X_n` where
 
-    -   `y`, the name of a column in your data frame that will be your
+    -   `y`, the name of a column in the data frame that is the
         response, note that it must be a column of a continuous variable
 
     -   `h(Z_1, Z_2, ... ,Z_k, mod = modifier_name)`, the names of every
-        exposure you want included in the model (the `Z`'s), and the the name of
+        exposure included in the model (the `Z`'s), and the the name of
         the modifier column (`mod`). This is default set to NULL and runs standard BKMR.
 
-    -   `X_1 + X_2 +...+ X_n`, the names of all covariates you would
-        like added to the model separated by plus signs
+    -   `X_1 + X_2 +...+ X_n`, the names of all covariates to be added to the model separated by plus signs
 
--   `data`, the data frame which you are pulling all this from
+-   `data`, the data frame where all the data is stored
 
--   `iter`, the number of iterations you want the MCMC sampler to run,
+-   `iter`, the number of iterations the MCMC sampler is going to run,
     which is defaulted to 1000.
 
--   `burnin`, the number of burn in iterations you want removed from
-    your final sampling, which is defaulted to `iter/2`, which would be
-    removing the first half of your samples
+-   `burnin`, the number of burn in iterations removed from
+    final sampling, which is defaulted to `iter/2`, which would be
+    removing the first half of the samples
 
 -   `verbose`, `TRUE` or `FALSE` (default) indicator for controlling the amount of
     live-time diagnostic which is outputted from the model,
@@ -297,11 +296,11 @@ summary(object = fitkm, #specify the model
         digits = 2 ) #specify the number of digits in output
 ```
 
-In our example output, we caused several warnings to be tripped based
-off our MCMC diagnostics. Acceptance rate warnings are displayed when
+In the example output, we caused several warnings to be tripped based
+off the MCMC diagnostics. Acceptance rate warnings are displayed when
 the MH acceptance rate is either below 20% or above 50%, as both
 situations indicate poor mixing and possible convergence issues. We also
-trip a warning for having our effective sample size is low (ESS \< 500),
+trip a warning for having the effective sample size be low (ESS \< 500),
 very low (ESS \< 100), or unavailable. These all suggest potential
 convergence problems. Finally there are two additional warnings related
 to the number of retained posterior samples and burn-in. A warning will
@@ -315,9 +314,9 @@ Checking](#model-checking) for more details and trouble shooting.
 ## Model Checking {#model-checking}
 
 Next, check the convergence of model parameters with the `TracePlot()`
-function. This function asks you to specify the parameter with the `par`
+function. This function asks the parameter to be specified with the `par`
 argument and returns a line plot showing the sampled values of that parameter across MCMC iterations, along with the parameter's posterior mean displayed in orange. These trace plots should exhibits rapid up and down variation
-with no long-term trends or drifts. This indicates that your estimates
+with no long-term trends or drifts. This indicates that the estimates
 have converged. Long-term trends or drifts in the plot indicate slower
 convergence, poor convergence, or no convergence at all. See "How to Handle Poor Mixing Results" in "User Implimented Changes" for more details and trouble shooting
 
@@ -342,7 +341,7 @@ colMeans(fitkm$acc.lambda)
 ```
 
 In the code chunk above, we are pulling the saved decision
-(accept as 1 or reject as 0) from each iteration our model. Then we are
+(accept as 1 or reject as 0) from each iteration in the model. Then we are
 taking the column means which give the empirical acceptance rates for
 each parameter
 Acceptance rates vary from problem to problem, but should not be close
@@ -354,9 +353,9 @@ details.
 
 ## Model Output {#model-output}
 
-After reviewing our model to ensure proper mixing, and checking it's
+After reviewing the model to ensure proper mixing, and checking it's
 acceptance rates, we can move on to reviewing the model output. Here if
-we call the `ExtractEsts` function it will give us estimates for each of our
+we call the `ExtractEsts` function it will give us estimates for each of the
 model parameters as well as quantiles for those estimates.
 
 ```{r}
@@ -367,7 +366,7 @@ ExtractEsts(fitkm, par = "r", digits = 2)
 ```
 
 Similarly we
-can use `ExtractSamps` to get and view all the samples our MCMC algorithm
+can use `ExtractSamps` to get and view all the samples the MCMC algorithm
 decided to keep at each point
 
 ```{r}
@@ -381,8 +380,7 @@ Both functions take in a `par` argument, which indicates which parameter values 
 
 ### Plotting_App Overview {#pao}
 
-Our package includes a Shiny app, which can help you figure out which plotting 
-code you would like to run. The application can be launched at any time using 
+This package includes a Shiny app designed to make finding and running specific plots easier. The application can be launched at any time using 
 
 `plotting_app()`
 
@@ -397,13 +395,13 @@ The plotting app is separated into 5 different tabs: "Preview Plot", "Full Plot"
 `Fit Object Name`, `Exposure Variation`, and `Analysis Type` have been specified, the application can produce a preview plot, a full plot, the code used to 
 get these plots, the corresponding numerical results, and a brief generalized interpretation. 
 
-Selecting the "Create Preview Plot" button quickly generates a sample plot based on the current option settings, using the first 10 observations from your fit object (`sel = 1:10`). This feature is designed to visually determine if these option settings will result in the desired plot. Selecting the "Create Full Plot" button will create a plot based on the current option settings, using all observations supplied through `Fit Object Name`. This will be displayed in the Full Plot tab. The Results tab displays the data used in either Preview Plot or Full Plot used for plotting. 
+Selecting the "Create Preview Plot" button quickly generates a sample plot based on the current option settings, using the first 10 observations from the supplied fit object (`sel = 1:10`). This feature is designed to visually determine if these option settings will result in the desired plot. Selecting the "Create Full Plot" button will create a plot based on the current option settings, using all observations supplied through `Fit Object Name`. This will be displayed in the Full Plot tab. The Results tab displays the data used in either Preview Plot or Full Plot used for plotting. 
 
 The Generated Code tab displays a copy-and-paste version of the code used to generate those plot. There are a few comments, but any user changeable options that are specified by the sidebar in the app are editable in the first few lines of the code. The interpretation tab gives a brief generalized interpretation for each plot combination. The interpretations are always available, but the current option settings will be highlighted in black, while the other non selected options are grayed out. 
 
 This shiny app follows a hierarchical work flow. A fit object in the current environment must be available before any plots or results can be generated. After specifying the fit object, an exposure variation type must be selected. This choice determines whether the joint exposure movement, (Overall), a single exposure movement, (Single), or two exposures moving, (Bivariate). Note that for the bivariate type to work, a modifier must not be present. 
 
-Once an exposure variation has been selected, you must specify the Analysis type. This type  determines what you want to compare across. Comparing within one specific group, "Group Specific", Comparing interaction between groups, "Between Groups", or estimating the response function itself, "Response Function". 
+Once an exposure variation has been selected, the Analysis type must be specified. This type  determines what to compare across. Comparing within one specific group, "Group Specific", Comparing interaction between groups, "Between Groups", or estimating the response function itself, "Response Function". 
 
 ### Specified Combination Arguments {#SCA}
 
@@ -428,14 +426,12 @@ Different Exposure Variation and Analysis Type combinations require different in
 Several functions in `bkmrGS` include a `method` argument that controls
 how risk summaries are computed. Different methods may vary in
 computational cost and the degree of approximation used. Specifically,
-all of our exposure-response functions have the `method` argument, which
+all of the exposure-response functions have the `method` argument, which
 can be `approx`, `exact`, or `fullpost`. The default for this is
-changes depending on the function (check the help file for each function if 
-you need the default). When `method = approx`, the function uses a 
+changes depending on the function (check the help file for each function for defaults). When `method = approx`, the function uses a 
 Gaussian process approximation based on
 posterior mean and variance estimates. This reduces the computational
-burden slightly and scales better when there are many prediction points. If you
-changed this to `method = exact` we see that the function is evaluated
+burden slightly and scales better when there are many prediction points. Changing this to `method = exact` we see that the function is evaluated
 using a full Gaussian process. It also uses the exact covariance
 structure at the posterior mean parameter estimates. This is more
 precise at the cost of being more computationally expensive. Between
@@ -449,7 +445,7 @@ posterior samples.
 The function `bkmrGS()` also has a `kernel.method` call,
 which allows the user to run either standard BKMR if
 `kernel.method = "one"` or group separable BKMR if
-`kernel.method = "two"`. Note that if you include a modifier you should be running  `kernel.method = "two"`, and that if you don't include a modifier `kernel.method = "one"` is set automatically. 
+`kernel.method = "two"`. Note that if a modifier is included, it should be set to `kernel.method = "two"`, and that if a modifier is not included, `kernel.method = "one"` is set automatically. 
 
 For example, in functions such as `OverallRiskSummaries()` and
 `SingVarRiskSummaries()`, the argument `method = "exact"` computes risk
@@ -464,7 +460,8 @@ desired, but may introduce additional variability or bias.
 
 The BKMR model is fit using Markov Chain Monte Carlo, therefore most of the parameters are updated using a Gibbs step. The $r_m$ and $\lambda$ parameters, however are updated using a Metropolis-Hastings step. We used a gamma proposal distribution with mean equal to the current value. 
 
-If your acceptance rates are too high (an acceptance rate higher than 50\%) this could lead to a slow mixing chain. If your acceptance rates are too low (an acceptance rate lower than 20\%), that could prevent the algorithm from properly exploring the parameter space. Thus it is essential for any MCMC to have good acceptance rates. Generally, these acceptance rate can be changed through the `control.params` argument. If you are running standard BKMR, then you will only see a list of 1 value per parameter, but if you are running group-separable bkmr, then you can change the tuning parameter per group. Here is the list of tuning parameters and their starting values
+If the acceptance rates are too high (an acceptance rate higher than 50\%) this could lead to a slow mixing chain. If the acceptance rates are too low (an acceptance rate lower than 20\%), that could prevent the algorithm from properly exploring the parameter space. Thus it is essential for any MCMC to have good acceptance rates. Generally, these acceptance rate can be changed through the `control.params` argument. 
+When running standard BKMR, this argument will return a list of 1 value per parameter. On the other hand, when running group-separable BKMR, this argument will return a list of parameters for each specified group. Here is the list of tuning parameters and their starting values
 
 ```{r}
 data.frame(fitkm$control.params)
@@ -474,7 +471,7 @@ Any value that ends in a `.jump` or `.muprop` is a tuning parameter and can be c
 
 ## How to Change the Priors
 
-Our package also allows users to modify prior distributions for the model
+This package also allows users to modify prior distributions for the model
 parameters. Prior specification can be updated again through the
 `control.params` argument. Priors can be explored using the
 `InvestigatePriors()` function, which allows users to visualize the
@@ -491,13 +488,13 @@ Any value that does not end in a `.jump` or `.muprop` is a prior parameter and c
 
 ## How to Handle Poor Mixing Results
 
-Model convergence is essential when dealing with any form of Monte Carlo Markov Chain estimation. This allows us to be confident in our estimates, as our algorithm has stabilized around an optimal state. A few ways to test model convergence are through the `TracePlot` function and the effective sample size (`ess`) return when calling summary on a `bkmrGS` object. 
+Model convergence is essential when dealing with any form of Monte Carlo Markov Chain estimation. This allows us to be confident in the estimates, as this algorithm has stabilized around an optimal state. A few ways to test model convergence are through the `TracePlot` function and the effective sample size (`ess`) return when calling summary on a `bkmrGS` object. 
 
-To check the effectiveness of your sampling, a trace plot is ideal. Like we talked about in the Model Checking Section, we want to see no obvious trends (post burn in) and a rapid up and down variation with no drifts. If this is not the case, either increase the number number of samples (try `iter = 1500,...,burnin = 500` in the `bkmrGS()` call or larger) or adjust the tuning parameters. 
+To check the effectiveness of the model's sampling, a trace plot is ideal. Like we talked about in the Model Checking Section, we want to see no obvious trends (post burn in) and a rapid up and down variation with no drifts. If this is not the case, either increase the number number of samples (try `iter = 1500,...,burnin = 500` in the `bkmrGS()` call or larger) or adjust the tuning parameters. 
 
-If your effective sample size is too low, this indicates your chains are producing highly correlated estimates, and it is taking a long time to explore your parameter space. You would know if your effective sample size is too low if the summary produces a warning. If this is the case, either try increasing the number of samples (try `iter = 1500, ... , burnin = 500` in the `bkmrGS()` call or larger), adjusting the tuning parameters, or thinning. Thinning is the process of saving every $n$-th iteration instead of saving every iteration. Typically, increasing iterations or improving mixing is generally preferable to thinning.
+If the effective sample size is too low, this indicates that the chains are producing highly correlated estimates, and it is taking a long time to explore the parameter space. If the effective sample size is too low, the summary will produce a warning. If this is the case, either try increasing the number of samples (try `iter = 1500, ... , burnin = 500` in the `bkmrGS()` call or larger) or adjusting the tuning parameters. 
 
-If these are not working for your specific problem, two good resources for MCMC diagnostics and solutions are ["Markov Chain Monte Carlo (MCMC) diagnostics"](https://www.statlect.com/fundamentals-of-statistics/Markov-Chain-Monte-Carlo-diagnostics) from @taboga2021mcmcdiagnostics or ["Exploratory Analysis of Bayesian Models"](https://arviz-devs.github.io/EABM/) online workbook from @eabm_2025.
+If these are not working for a specific problem, two good resources for MCMC diagnostics and solutions are ["Markov Chain Monte Carlo (MCMC) diagnostics"](https://www.statlect.com/fundamentals-of-statistics/Markov-Chain-Monte-Carlo-diagnostics) from @taboga2021mcmcdiagnostics or ["Exploratory Analysis of Bayesian Models"](https://arviz-devs.github.io/EABM/) online workbook from @eabm_2025.
 
 # References
 
