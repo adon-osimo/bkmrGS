@@ -365,7 +365,7 @@ server <- function(input, output, session){
             if (active) "font-weight: bold;" else ""
           ),
           
-          h4(paste(x[[1]], " Exposure with ", x[[2]], " Movement type")),
+          h4(paste(x[[2]], " Analysis with ", x[[1]], " Exposure variaton")),
           
           div(
             style = "white-space: pre-wrap;",
