@@ -79,17 +79,17 @@ observation belongs to. The model is
 
 $$y_i = h_{w_i}(\mathbf{z_i}) + X_i^T\beta + \epsilon_i$$
 
-Where each group $w_i$ has its own exposure-response function $h_{w_i}(\cdot)$. When observations $i$ and $j$ belong to the same group $w_i = w_j$, we have a new group Separable kernel in the form of
+Where each group $w_i$ has its own exposure-response function $h_{w_i}(\cdot)$. When observations $i$ and $j$ belong to the same group, $w_i = w_j$, we have a new group Separable kernel in the form of
 
-$$K_g(\mathbf{z_i, z_j}, w_i, \mathbf{\tau^{gs}, r^{gs}}) =\tau^{gs}_{w_i} \cdot \exp\Bigg[ - \sum_{m=1}^M {r^{gs}_{m,w_i}(z_{im} - z_{jm})^2} \Bigg]$$
+$$K_g(\mathbf{z_i, z_j}, w_i, w_j, \mathbf{\tau^{gs}, r^{gs}}) =\tau^{gs}_{w_i} \cdot \exp\Bigg[ - \sum_{m=1}^M {r^{gs}_{m,w_i}(z_{im} - z_{jm})^2} \Bigg]$$
 
 If the observations belong to different groups $w_i \neq w_j$, the kernel function will be 0 
 
-$$K_g(\mathbf{z_i, z_j}, w_i, \mathbf{\tau^{gs}, r^{gs}}) = 0$$
+$$K_g(\mathbf{z_i, z_j}, w_i, w_j,\mathbf{\tau^{gs}, r^{gs}}) = 0$$
 
 The standard kernel and group separable kernel functions look very similar, still relying on the idea of shrinking similar observations within each exposure. However, in the group separable model, we have a different $\tau$, which we call $\tau^{gs}_{w_i}$ which varies under different groups. We also have a new $r$ which we call $r^{gs}_{m,w_i}$ which we also allow to vary by group. Under this formulation, observations only contribute to the kernel
 within the same group, allowing each group to have a distinct and
-flexible exposure-response surface.
+flexible exposure-response surface. 
 
 ## When to use Group Seperable BKMR and benefits of doing so
 
@@ -116,12 +116,10 @@ set.seed(456)
 data("Liu_data")
 str(Liu_data)
 y <- Liu_data$y
-X <- Liu_data$Age
-Z <- as.matrix(Liu_data[2:4])
 #fit bkmr::kmbayes and get a plotable object
 bkmr_model <- bkmrGS(y ~ h(Log_Lead, Log_Manganese, Log_Arsenic) + Age, 
                           data = Liu_data,
-                          iter = 10, 
+                          iter = 1000, 
                           verbose = FALSE) 
 bkmr_input <- PredictorResponseUnivar(fit = bkmr_model)
 std_bkmr_plot <- ggplot(bkmr_input, aes(z, est, ymin = est - 1.96*se, ymax = est + 1.96*se)) + 
@@ -132,7 +130,7 @@ std_bkmr_plot <- ggplot(bkmr_input, aes(z, est, ymin = est - 1.96*se, ymax = est
 #fit bkmrGS::bkmrGS and get a plotable object
 bkmrGS_model <- bkmrGS(y ~ h(Log_Lead, Log_Manganese, Log_Arsenic, mod = Sex) + Age, 
                           data = Liu_data,
-                          iter = 10, 
+                          iter = 1000, 
                           verbose = FALSE) 
 bkmrgs_input <- PredictorResponseUnivar(fit = bkmrGS_model, 
                                             method = "exact",
@@ -191,10 +189,6 @@ showcasing the usability of `bkmrGS`.
 -   [Exposure-Response Relationship With Shiny](#shiny)
     -   [Plotting_App Overview](#pao)
     -   [Specified Combination Arguments](#SCA)
--   [Exposure-Response Relationship](#exposure-response-relationships)
-    -   [Univariate exposure-response functions](#univariate)
-    -   [Group specific effects](#GSeffects)
-    -   [Between Group Differences](#differences)
 
 ## Data Set and Fitting {#data-fitting}
 
@@ -282,7 +276,7 @@ fitkm <- bkmrGS(y ~ h(Log_Lead, Log_Manganese, Log_Arsenic, mod = Sex) +
                           HOME_env + HOME_play + HOME_stim + 
                           Energy, #entire model in a GAM style
                           data = Liu_data, #data frame
-                          iter = 10, #MCMC iterations
+                          iter = 1000, #MCMC iterations
                           #iter = 5000 #this is an appropriate starting iteration value
                           verbose = FALSE) #controls output during fitting
 
@@ -293,7 +287,7 @@ We can quickly look at the object by printing it and using the
 
 ```{r}
 summary(object = fitkm, #specify the model
-        digits = 2 ) #specify the number of digits in output
+        digits = 2) #specify the number of digits in output
 ```
 
 In the example output, we caused several warnings to be tripped based
@@ -318,7 +312,7 @@ function. This function asks the parameter to be specified with the `par`
 argument and returns a line plot showing the sampled values of that parameter across MCMC iterations, along with the parameter's posterior mean displayed in orange. These trace plots should exhibits rapid up and down variation
 with no long-term trends or drifts. This indicates that the estimates
 have converged. Long-term trends or drifts in the plot indicate slower
-convergence, poor convergence, or no convergence at all. See "How to Handle Poor Mixing Results" in "User Implimented Changes" for more details and trouble shooting
+convergence, poor convergence, or no convergence at all. See "How to Handle Poor Mixing Results" in "User Implemented Changes" for more details and trouble shooting
 
 ```{r, fig.width=8, fig.height=8}
 par(mfrow = c(2, 2))
@@ -328,12 +322,15 @@ TracePlot(fitkm, par = "lambda")
 TracePlot(fitkm, par = "r", comp = 1)
 ```
 
+Note that in the trace plots above, we examined the behavior of both $\lambda$ and $\sigma^2$ which were not defined in our model outline. Both these parameters are defined in the model internally. $\sigma^2$ defines the residual variance parameter and $\lambda$ defines the kernel variance parameter. The $r$ parameters
+correspond to the exposures passed in the $h(\cdot)$ call, and therefore
+control the relative importance of each exposure's contribution. The $\lambda$ parameter controls the overall flexibility of the exposure response surface, while $\sigma^2$ quantifies the variability in the outcome that is not explained by the exposure-response function $h(\cdot)$ or the covariates in $X$. Rather than sampling $\tau$ directly, the model uses the reparameterization 
+
+$$\lambda = \frac{\tau}{\sigma^2}$$
+
+which generally improves the efficiency of posterior sampling. 
 Then, we should check the acceptance rates of $r$ and $\lambda$, to
-ensure they are being sampled properly. In BKMR, the $r$ parameters
-correspond to the exposures passed in the $h()$ call, and therefore
-control the relative importance of each exposure's contribution. The
-$\lambda$ parameter, not defined explicitly in the model, controls the overall flexibility of the exposure
-response surface. Rather than sampling $\tau$ directly, we use the reparameterization of $\lambda = \frac{\tau}{\sigma^2}$ which improves the efficiency of posterior sampling.  
+ensure they are being sampled properly.
 
 ```{r}
 colMeans(fitkm$acc.r)
@@ -384,7 +381,6 @@ This package includes a Shiny app designed to make finding and running specific 
 
 `plotting_app()`
 
-
 When done, this opens the BKMR 
 Plot Generator interface. The app requires `Fit_Object_Name`, the exposure variation 
 type (`Overall`, `Single`, or `Bivariate`) and an analysis type 
@@ -399,7 +395,7 @@ Selecting the "Create Preview Plot" button quickly generates a sample plot based
 
 The Generated Code tab displays a copy-and-paste version of the code used to generate those plot. There are a few comments, but any user changeable options that are specified by the sidebar in the app are editable in the first few lines of the code. The interpretation tab gives a brief generalized interpretation for each plot combination. The interpretations are always available, but the current option settings will be highlighted in black, while the other non selected options are grayed out. 
 
-This shiny app follows a hierarchical work flow. A fit object in the current environment must be available before any plots or results can be generated. After specifying the fit object, an exposure variation type must be selected. This choice determines whether the joint exposure movement, (Overall), a single exposure movement, (Single), or two exposures moving, (Bivariate). Note that for the bivariate type to work, a modifier must not be present. 
+This shiny app follows a hierarchical work flow. A fit object in the current environment must be available before any plots or results can be generated. After specifying the fit object, an exposure variation type must be selected. This choice determines whether the joint exposure movement, (Overall) or a single exposure movement, (Single). Note that for the bivariate type to work, a modifier must not be present. 
 
 Once an exposure variation has been selected, the Analysis type must be specified. This type  determines what to compare across. Comparing within one specific group, "Group Specific", Comparing interaction between groups, "Between Groups", or estimating the response function itself, "Response Function". 
 
@@ -407,17 +403,19 @@ Once an exposure variation has been selected, the Analysis type must be specifie
 
 Different Exposure Variation and Analysis Type combinations require different inputs that change dynamically based on the combination. Here is a more detailed list of those possible user specified inputs 
 
-- `q.fixed`: The quantile value at which the exposures not being varied are being held constant. Provides a reference point when estimating the effect of changes in the exposure mixture.
+- `q.fixed`: The quantile value at which the exposures not being varied are being held constant. Provides a reference point when estimating the effect of changes in the exposure mixture. This is defaulted to 0.5, or the median
 
-- `ngrid`: The number of grid points iat which each exposure is evaluated
+- `ngrid`: The integer number of grid points at which each exposure is evaluated. This is defaulted to 50
 
-- `qs`: The quantiles at which the mixture is evaluated.
+- `qs`: An array of quantiles between 0 and 1, at which the mixture is evaluated. This is defaulted to `c(seq(0.25, 0.75, 0.05))` but can be changed to any array of quantiles the user desires. 
 
-- `m.fixed`: Indicates the modifier level, so the resulting estimates correspond to the group-specific function $h_w(Z)$. 
+- `m.fixed`: Indicates the modifier level, so the resulting estimates correspond to the group-specific function $h_w(Z)$. If no modifier is present, this value must be `NULL`
 
-- `qs.diff` specifies the lower and upper quantiles used for the "Single" Exposure Variation type. Note that this must be a list of exactly 2 quantiles between the values of 0 and 1.
+- `qs.diff` specifies the lower and upper quantiles used for the "Single" Exposure Variation type. Note that this must be a list of exactly 2 quantiles between the values of 0 and 1. This is defaulted to `c(0.25, 0.75)`.
 
-- `mod.diff = c("group_1", "group_2")`: Indicates that the estimated differences corresponding to "group_2" minus "group_1". Note that this must be a list of exactly 2 modifier groups.
+- `mod.diff`: This argument is defaulted to `c("group_1", "group_2")` and indicates that the estimated differences corresponding to "group_2" minus "group_1". Note that this requires a modifier to be present and must be a list of exactly 2 modifier groups.
+
+Be aware that for any analysis type set to `analysis = 'Between Groups'`, there must be a modifier present for that function to return any values. 
 
 # User Implemented Changes
 
