@@ -37,8 +37,8 @@ SimData2 <- function (scenario = "none",
                       mod_DGM = TRUE,
                       covariates = "new"){
   
-  #ex_data is lazy loaded
-  dta <- cbind(ex_data$Z, ex_data$X)
+  #Liu_data is lazy loaded
+  dta <- Liu_data[-1]
   n <- nrow(dta) #350
 
   #sort by modifier
@@ -49,7 +49,7 @@ SimData2 <- function (scenario = "none",
   }
   
   #set exposures
-  Z <- cbind(scale(dta$`Log Lead`), scale(dta$`Log Manganese`))
+  Z <- cbind(scale(dta$Log_Lead), scale(dta$Log_Manganese))
   
   #set covariates
   if(covariates == "old"){ #covariates from original submission
@@ -159,7 +159,7 @@ SimData2 <- function (scenario = "none",
   y <- mu + eps
   
   #including other null exposures
-  Z <- cbind(Z, scale(dta$`Log Arsenic`))
+  Z <- cbind(Z, scale(dta$Log_Arsenic))
   colnames(Z) <- paste0("z", 1:ncol(Z))
   
   #data structure
