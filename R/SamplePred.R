@@ -2,6 +2,10 @@
 #'
 #' Obtains posterior samples of \code{E(Y) = h(Znew) + beta*Xnew} or of \code{g^{-1}[E(y)]}
 #' 
+#' @param y a vector of outcome data of length \code{n}, inherited by bkmrGS.
+#' @param Z an \code{n}-by-\code{M} matrix of predictor variables to be included in the \code{h} function. Each row represents an observation and each column represents an predictor, inherited by bkmrGS.
+#' @param X an \code{n}-by-\code{K} matrix of covariate data where each row represents an observation and each column represents a covariate. Should not contain an intercept column, inherited by bkmrGS.
+#' @param modifier a vector categorical values of length \code{n} that may modify the exposure-response associations. Control level ordering by using class \code{factor}, or use default level orders with any vector class, inherited by bkmrGS.
 #' @param sel A vector selecting which iterations of the BKMR fit should be retained for inference. If not specified, will default to keeping every 10 iterations after dropping the first 50\% of samples, or if this results in fewer than 100 iterations, than 100 iterations are kept
 #' @param Znew optional matrix of new predictor values at which to predict new \code{h}, where each row represents a new observation. If not specified, defaults to using observed Z values
 #' @param mod_new optional vector of new modifier values at which to predict new \code{h}, If not specified, defaults to using observed modifier values
@@ -27,12 +31,12 @@
 #'                         iter = 10, 
 #'                         verbose = FALSE) 
 #'                         
-#' med_vals <- apply(Z, 2, median)
+#' med_vals <- apply(fitkm$Z, 2, median)
 #' Znew <- matrix(med_vals, nrow = 1)
 #' mod_new <- "male"
 #' set.seed(111)
 #' samps3 <- SamplePred(fitkm, Znew = Znew, mod_new = mod_new, 
-#' Xnew = matrix(rep(0,ncol(X)),ncol=ncol(X)))
+#' Xnew = matrix(rep(0,ncol(fitkm$X)),ncol=ncol(fitkm$X)))
 #' head(samps3)
 SamplePred <- function(fit, Znew = NULL, Xnew = NULL, mod_new = NULL, 
                        Z = NULL, X = NULL, modifier = NULL, y = NULL, 

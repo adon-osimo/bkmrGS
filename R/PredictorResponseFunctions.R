@@ -124,8 +124,7 @@ PredictorResponseUnivarVar <- function(whichz = 1, fit, y, Z, X, modifier, metho
 #'                         verbose = FALSE) 
 #'                         
 #' pred.resp.univar <- PredictorResponseUnivar(fit = fitkm, method = "fullpost", q.fixed = 0.5)
-PredictorResponseUnivar <- function(fit, y = NULL, Z = NULL, X = NULL, 
-                                    modifier = NULL, which.z = 1:ncol(Z),
+PredictorResponseUnivar <- function(fit, which.z = 1:ncol(Z),
                                     which.mod = NULL, method = "exact",
                                     ngrid = 50, q.fixed = 0.5, sel = NULL, 
                                     min.plot.dist = Inf, center = TRUE, 
@@ -179,6 +178,10 @@ PredictorResponseUnivar <- function(fit, y = NULL, Z = NULL, X = NULL,
 #' @inheritParams ExtractEsts
 #' @inheritParams SingVarRiskSummaries
 #' @inheritParams PredictorResponseUnivar
+#' @param y a vector of outcome data of length \code{n}, inherited by bkmrGS.
+#' @param Z an \code{n}-by-\code{M} matrix of predictor variables to be included in the \code{h} function. Each row represents an observation and each column represents an predictor, inherited by bkmrGS.
+#' @param X an \code{n}-by-\code{K} matrix of covariate data where each row represents an observation and each column represents a covariate. Should not contain an intercept column, inherited by bkmrGS.
+#' @param modifier a vector categorical values of length \code{n} that may modify the exposure-response associations. Control level ordering by using class \code{factor}, or use default level orders with any vector class, inherited by bkmrGS.
 #' @param whichz1 vector identifying the first predictor that (column of \code{Z}) should be plotted
 #' @param whichz2 vector identifying the second predictor that (column of \code{Z}) should be plotted
 #' @param whichz3 vector identifying the third predictor that will be set to a pre-specified fixed quantile (determined by \code{prob})
@@ -188,8 +191,7 @@ PredictorResponseUnivar <- function(fit, y = NULL, Z = NULL, X = NULL,
 #' 
 #' @return a data frame with value of the first predictor, the value of the second predictor, the posterior mean estimate, and the posterior standard deviation
 #' 
-PredictorResponseBivarPair <- function(fit, y = NULL, Z = NULL, X = NULL,
-                                       modifier = NULL, whichz1 = 1, 
+PredictorResponseBivarPair <- function(fit, y = NULL, Z = NULL, X = NULL, modifier = NULL, whichz1 = 1, 
                                        whichz2 = 2, whichz3 = NULL, 
                                        method = "approx", prob = 0.5, 
                                        q.fixed = 0.5, 
@@ -276,18 +278,17 @@ PredictorResponseBivarPair <- function(fit, y = NULL, Z = NULL, X = NULL,
 #' @export
 #' 
 #' @return a long data frame with the name of the first predictor, the name of the second predictor, the value of the first predictor, the value of the second predictor, the posterior mean estimate, and the posterior standard deviation of the estimated exposure response function
-PredictorResponseBivar <- function(fit, y = NULL, Z = NULL, X = NULL, 
-                                   modifier = NULL, z.pairs = NULL, 
+PredictorResponseBivar <- function(fit, z.pairs = NULL, 
                                    method = "approx", ngrid = 50, 
                                    q.fixed = 0.5, sel = NULL,
                                    min.plot.dist = 0.5, center = TRUE, 
                                    z.names = colnames(Z), verbose = TRUE, ...) {
   
   if (inherits(fit, "bkmrfit")) {
-    if (is.null(y)) y <- fit$y
-    if (is.null(Z)) Z <- fit$Z
-    if (is.null(X)) X <- fit$X
-    if (is.null(modifier)) modifier <- fit$modifier
+    y <- fit$y
+    Z <- fit$Z
+    X <- fit$X
+    modifier <- fit$modifier   
   }
   
   if(!is.null(modifier)){
@@ -355,6 +356,7 @@ PredictorResponseBivar <- function(fit, y = NULL, Z = NULL, X = NULL,
 #' @export
 #' @inheritParams bkmrGS
 #' @inheritParams PredictorResponseBivar
+#' @param Z an \code{n}-by-\code{M} matrix of predictor variables to be included in the \code{h} function. Each row represents an observation and each column represents an predictor, inherited by bkmrGS.
 #' @param pred.resp.df object obtained from running the function \code{\link{PredictorResponseBivar}}
 #' @param qs vector of quantiles at which to fix the second variable
 #' @param both_pairs flag indicating whether, if \code{h(z1)} is being plotted for z2 fixed at different levels, that they should be plotted in the reverse order as well (for \code{h(z2)} at different levels of z1) 

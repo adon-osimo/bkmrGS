@@ -17,7 +17,15 @@ ComputePostmeanHnew(
 )
 }
 \arguments{
-\item{fit}{An object containing the results returned by a the \code{bkmrGS} function}
+\item{fit}{an object of class "bkmrfit"}
+
+\item{y}{a vector of outcome data of length \code{n}.}
+
+\item{Z}{an \code{n}-by-\code{M} matrix of predictor variables to be included in the \code{h} function. Each row represents an observation and each column represents an predictor.}
+
+\item{X}{an \code{n}-by-\code{K} matrix of covariate data where each row represents an observation and each column represents a covariate. Should not contain an intercept column.}
+
+\item{modifier}{a vector categorical values of length \code{n} that may modify the exposure-response associations. Control level ordering by using class \code{factor}, or use default level orders with any vector class, inherited by bkmrGS.}
 
 \item{Znew}{matrix of new predictor values at which to predict new \code{h}, where each row represents a new observation. If set to NULL then will default to using the observed exposures Z.}
 
@@ -55,7 +63,7 @@ fitkm <- bkmrGS(y ~ h(Log_Lead, Log_Manganese, Log_Arsenic, mod = Sex) +
                         iter = 10, 
                         verbose = FALSE) 
 
-med_vals <- apply(Z, 2, median)
+med_vals <- apply(fitkm$Z, 2, median)
 Znew <- matrix(med_vals, nrow = 1)
 mod_new <- "male"
 h_est <- ComputePostmeanHnew(fitkm, Znew = Znew, mod_new = mod_new, method = "exact")

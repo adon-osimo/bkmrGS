@@ -6,10 +6,6 @@
 \usage{
 OverallIntSummaries(
   fit,
-  y = NULL,
-  Z = NULL,
-  X = NULL,
-  modifier = NULL,
   which.z = 1:ncol(Z),
   qs = seq(0.25, 0.75, 0.05),
   mod.diff,

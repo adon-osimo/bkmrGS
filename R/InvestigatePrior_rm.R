@@ -2,7 +2,9 @@
 #'
 #' Investigate the impact of the \code{r[m]} parameters on the smoothness of the exposure-response function \code{h(z[m])}.
 #'
-#' @inheritParams bkmrGS
+#' @param y a vector of outcome data of length \code{n}.
+#' @param Z an \code{n}-by-\code{M} matrix of predictor variables to be included in the \code{h} function. Each row represents an observation and each column represents an predictor.
+#' @param X an \code{n}-by-\code{K} matrix of covariate data where each row represents an observation and each column represents a covariate. Should not contain an intercept column.
 #' @param ngrid Number of grid points over which to plot the exposure-response function
 #' @param q.seq Sequence of values corresponding to different degrees of smoothness in the estimated exposure-response function. A value of q corresponds to fractions of the range of the data over which there is a decay in the correlation \code{cor(h[i],h[j])} between two subjects by 50\code{\%}.
 #' @param r.seq sequence of values at which to fix \code{r} for estimating the exposure-response function
@@ -87,7 +89,9 @@ InvestigatePrior <- function(y, Z, X, ngrid = 50, q.seq = c(2, 1, 1/2, 1/4, 1/8,
 #' 
 #' Plot the estimated \code{h(z[m])} estimated from frequentist KMR for \code{r[m]} fixed to specific values 
 #' 
-#' @inheritParams bkmrGS
+#' @param y a vector of outcome data of length \code{n}.
+#' @param Z an \code{n}-by-\code{M} matrix of predictor variables to be included in the \code{h} function. Each row represents an observation and each column represents an predictor.
+#' @param X an \code{n}-by-\code{K} matrix of covariate data where each row represents an observation and each column represents a covariate. Should not contain an intercept column.
 #' @param fits output from \code{\link{InvestigatePrior}}
 #' @param which.z which predictors (columns in \code{Z}) to plot
 #' @param which.q which q.values to plot; defaults to all possible

@@ -16,6 +16,12 @@ InvestigatePrior(
 )
 }
 \arguments{
+\item{y}{a vector of outcome data of length \code{n}.}
+
+\item{Z}{an \code{n}-by-\code{M} matrix of predictor variables to be included in the \code{h} function. Each row represents an observation and each column represents an predictor.}
+
+\item{X}{an \code{n}-by-\code{K} matrix of covariate data where each row represents an observation and each column represents a covariate. Should not contain an intercept column.}
+
 \item{ngrid}{Number of grid points over which to plot the exposure-response function}
 
 \item{q.seq}{Sequence of values corresponding to different degrees of smoothness in the estimated exposure-response function. A value of q corresponds to fractions of the range of the data over which there is a decay in the correlation \code{cor(h[i],h[j])} between two subjects by 50\code{\%}.}

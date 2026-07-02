@@ -27,11 +27,11 @@ bkmrGS(
 )
 }
 \arguments{
-\item{formula}{a formula}
+\item{formula}{A model formula specifying the outcome, exposure mixture, and any additional covariates. The exposure mixture must be wrapped in \code{h()}, and be similar to \code{y ~ h(z1, z2, z3, mod = modifier) + x1 + x2 + x3}}
 
-\item{data}{a data frame}
+\item{data}{A data frame containing the variables referenced in \code{formula}, all variables used inthe model must be present in this data frame}
 
-\item{iter}{number of iterations to run the sampler}
+\item{iter}{An integer specifying the total number of MCMC to perform, including burn-in}
 
 \item{family}{a description of the error distribution and link function to be used in the model. Currently implemented for \code{gaussian} and \code{binomial} families.}
 
@@ -62,6 +62,8 @@ bkmrGS(
 \item{gs.sig}{TRUE or FALSE: indicator for whether to estimate separate error variance terms for each group. Only available for the group-separable method (\code{kernel.method = "two"})}
 
 \item{burnin}{An integer that specifies how many observation will be discarded for burnin.}
+
+\item{Znew}{matrix of new predictor values at which to predict new \code{h}, where each row represents a new observation. If set to NULL then will default to using the observed exposures Z.}
 }
 \value{
 an object of class "bkmrfit" (containing the posterior samples from the model fit), which has the associated methods:

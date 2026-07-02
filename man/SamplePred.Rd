@@ -27,6 +27,14 @@ SamplePred(
 
 \item{mod_new}{optional vector of new modifier values at which to predict new \code{h}, If not specified, defaults to using observed modifier values}
 
+\item{Z}{an \code{n}-by-\code{M} matrix of predictor variables to be included in the \code{h} function. Each row represents an observation and each column represents an predictor, inherited by bkmrGS.}
+
+\item{X}{an \code{n}-by-\code{K} matrix of covariate data where each row represents an observation and each column represents a covariate. Should not contain an intercept column, inherited by bkmrGS.}
+
+\item{modifier}{a vector categorical values of length \code{n} that may modify the exposure-response associations. Control level ordering by using class \code{factor}, or use default level orders with any vector class, inherited by bkmrGS.}
+
+\item{y}{a vector of outcome data of length \code{n}, inherited by bkmrGS.}
+
 \item{sel}{A vector selecting which iterations of the BKMR fit should be retained for inference. If not specified, will default to keeping every 10 iterations after dropping the first 50\% of samples, or if this results in fewer than 100 iterations, than 100 iterations are kept}
 
 \item{type}{whether to make predictions on the scale of the link or of the response; only relevant for the binomial outcome family}
@@ -54,11 +62,11 @@ fitkm <- bkmrGS(y ~ h(Log_Lead, Log_Manganese, Log_Arsenic, mod = Sex) +
                         iter = 10, 
                         verbose = FALSE) 
                         
-med_vals <- apply(Z, 2, median)
+med_vals <- apply(fitkm$Z, 2, median)
 Znew <- matrix(med_vals, nrow = 1)
 mod_new <- "male"
 set.seed(111)
 samps3 <- SamplePred(fitkm, Znew = Znew, mod_new = mod_new, 
-Xnew = matrix(rep(0,ncol(X)),ncol=ncol(X)))
+Xnew = matrix(rep(0,ncol(fitkm$X)),ncol=ncol(fitkm$X)))
 head(samps3)
 }

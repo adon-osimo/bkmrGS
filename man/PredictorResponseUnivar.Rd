@@ -6,10 +6,6 @@
 \usage{
 PredictorResponseUnivar(
   fit,
-  y = NULL,
-  Z = NULL,
-  X = NULL,
-  modifier = NULL,
   which.z = 1:ncol(Z),
   which.mod = NULL,
   method = "exact",

@@ -1,7 +1,10 @@
 #' Compute the posterior mean and variance of \code{h} at a new predictor values
 #'
-#' @inheritParams bkmrGS
-#' @param fit An object containing the results returned by a the \code{bkmrGS} function 
+#' @param fit an object of class "bkmrfit"
+#' @param y a vector of outcome data of length \code{n}.
+#' @param Z an \code{n}-by-\code{M} matrix of predictor variables to be included in the \code{h} function. Each row represents an observation and each column represents an predictor.
+#' @param X an \code{n}-by-\code{K} matrix of covariate data where each row represents an observation and each column represents a covariate. Should not contain an intercept column.
+#' @param modifier a vector categorical values of length \code{n} that may modify the exposure-response associations. Control level ordering by using class \code{factor}, or use default level orders with any vector class, inherited by bkmrGS.
 #' @param Znew matrix of new predictor values at which to predict new \code{h}, where each row represents a new observation. If set to NULL then will default to using the observed exposures Z.
 #' @param mod_new vector of new modifier values at which to predict new \code{h}. If set to NULL then will default to using the observed modifiers.
 #' @param method method for obtaining posterior summaries at a vector of new points. Options are "approx" and "exact"; defaults to "approx", which is faster particularly for large datasets; see details. Only "exact" is supported now
@@ -31,7 +34,7 @@
 #'                         iter = 10, 
 #'                         verbose = FALSE) 
 #' 
-#' med_vals <- apply(Z, 2, median)
+#' med_vals <- apply(fitkm$Z, 2, median)
 #' Znew <- matrix(med_vals, nrow = 1)
 #' mod_new <- "male"
 #' h_est <- ComputePostmeanHnew(fitkm, Znew = Znew, mod_new = mod_new, method = "exact")

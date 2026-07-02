@@ -1,0 +1,510 @@
+---
+title: "Group Separable BKMR Overview"
+author: "by Danielle Demateis and Adon Osimo"
+output: 
+bibliography: references.bib
+vignette: >
+  %\VignetteIndexEntry{Group Separable BKMR Overview}
+  %\VignetteEncoding{UTF-8}
+  %\VignetteEngine{knitr::rmarkdown}
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{r, echo = FALSE}
+library(ggplot2)
+```
+
+# Introduction to bkmr and bkmrGS
+
+The latest version of the standard bkmr package is on CRAN and can be
+installed by
+
+`install.packages("bkmr")`
+
+The latest version of the bkmrGS package is on GitHub and can be
+downloaded and installed by
+
+`remotes::install_github("adon-osimo/bkmrGS")`
+
+Then the packages can be loaded by
+
+```{r}
+library(bkmrGS)
+```
+
+This vignette introduces the `bkmr` and `bkmrGS` packages to implement
+the standard and group-separable BKMR model. The `bkmr` package was
+built by Jennifer Bobb and can be accessed
+[here](https://CRAN.R-project.org/package=bkmr). The `bkmrGS` package is
+built on top of the BKMR paper by Jennifer Bobb described in [this
+Biostatistics article](https://doi.org/10.1093/biostatistics/kxu058) and
+[this Environmental Health supplemental
+article](https://doi.org/10.1186/s12940-018-0413-y).
+
+The `bkmrGS` package is built off the `bkmr` package, but does
+not have all of the functionality of that package. Currently the 
+`'method = approx'` function argument has not been implemented for all functions
+(see "Changing Methods" in the "User Implemented Changes" section for more).  
+Additionally, it would be faster to run standard BKMR through the `bkmr` package, however the same analysis can be run through `bkmrGS::bkmrGS` by setting `mod = NULL`.
+
+## Standard bkmr
+
+Bayesian Kernel Machine Regression (BKMR) is a flexible framework for
+modeling the health effects of exposure mixtures. It is designed to
+estimate the joint effect of multiple exposures (Z) on an outcome (y),
+while accounting for covariates (X). The standard BKMR model is
+
+$$y_i = h(\mathbf{z_i}) + X_i^T\beta + \epsilon_i, \ \epsilon_i \sim N(0,\sigma^2)$$
+
+where $h(\cdot)$ is an unknown function modeled using a kernel.  A common
+choice is the Gaussian kernel with $m \in (1,\dots, M)$ exposure
+variables,
+
+$$K(\mathbf{z_i},\mathbf{z_j}, \tau, \mathbf{r}) = \tau\exp\left\{-\sum^M_{m=1}r_m(z_{im}-z_{jm})^2\right\}$$
+
+Here, $\mathbf{z_i}$ and $\mathbf{z_j}$ denote the exposure vectors for two different individuals. Standard BKMR uses a global value of $\tau$, which controls the overall variability of the exposure-response function. It also uses a vector of parameters $\mathbf{r}$, which determines the contribution of each exposure to the kernel similarity. A larger value of $r_m$ implies a greater influence of exposure $m$ on the estimated exposure-response relationship. Intuitively, the kernel function shrinks the estimated health effects of
+two individuals with similar exposure profiles toward each other [@bobb2015].
+
+Standard BKMR assumes that this mixture-response function $h(\cdot)$ is
+the same for all individuals, and does not account for effect
+modification.
+
+## Group Separable BKMR
+
+The Group Separable BKMR framework extends standard BKMR by allowing us
+to explicitly model effect modification in the kernel. While maintaining that each $i, j$ are individual observations, we add a categorical modifier $w_i \in (1,\dots, G)$, indicating which group the
+observation belongs to. The model is
+
+$$y_i = h_{w_i}(\mathbf{z_i}) + X_i^T\beta + \epsilon_i$$
+
+Where each group $w_i$ has its own exposure-response function $h_{w_i}(\cdot)$. When observations $i$ and $j$ belong to the same group, $w_i = w_j$, we have a new group Separable kernel in the form of
+
+$$K_g(\mathbf{z_i, z_j}, w_i, w_j, \mathbf{\tau^{gs}, r^{gs}}) =\tau^{gs}_{w_i} \cdot \exp\Bigg[ - \sum_{m=1}^M {r^{gs}_{m,w_i}(z_{im} - z_{jm})^2} \Bigg]$$
+
+If the observations belong to different groups $w_i \neq w_j$, the kernel function will be 0 
+
+$$K_g(\mathbf{z_i, z_j}, w_i, w_j,\mathbf{\tau^{gs}, r^{gs}}) = 0$$
+
+The standard kernel and group separable kernel functions look very similar, still relying on the idea of shrinking similar observations within each exposure. However, in the group separable model, we have a different $\tau$, which we call $\tau^{gs}_{w_i}$ which varies under different groups. We also have a new $r$ which we call $r^{gs}_{m,w_i}$ which we also allow to vary by group. Under this formulation, observations only contribute to the kernel
+within the same group, allowing each group to have a distinct and
+flexible exposure-response surface. 
+
+## When to use Group Seperable BKMR and benefits of doing so
+
+The classic BKMR model is appropriate when the exposure-response
+relationship is assumed to be the same across all individuals. In
+contrast, Groups Separable BKMR is useful when there is reason to
+believe that this relationship differs across groups defined by a
+categorical modifier $w$.
+
+Compared to fitting separate BKMR models within each group (i.e.,
+stratified analysis), Group Separable BKMR provides unified modeling.
+This allows Group Separable BKMR to offer a more interpretable structure
+by jointly estimating the group specific exposure-response functions
+$h_w(Z)$. Group Separable BKMR is the right tool for fitting
+exposure-response relationships across groups while maintaining
+interpretability.
+
+## Visualization of the Difference
+
+```{r warning=FALSE, include=FALSE}
+#make data for the plot
+#ex_data_plot <- data.frame(y = Liu_data$y, Log_Lead = Liu_data$Log_Lead, Log_Manganese = Liu_data$Log_Manganese, Log_Arsenic = Liu_data$Log_Arsenic, ex_data$X)
+set.seed(456)
+data("Liu_data")
+str(Liu_data)
+Liu_data
+#fit bkmr::kmbayes and get a plotable object
+bkmr_model <- bkmrGS(y ~ h(Log_Lead, Log_Manganese, Log_Arsenic, mod = NULL) + Age + Gestation + Delivery, 
+                          data = Liu_data,
+                          iter = 100, 
+                          verbose = FALSE) 
+bkmr_input <- PredictorResponseUnivar(fit = bkmr_model,
+                                      method = "exact",
+                                      q.fixed = 0.5)
+std_bkmr_plot <- ggplot(bkmr_input, aes(z, est, ymin = est - 1.96*se, ymax = est + 1.96*se)) + 
+    geom_smooth(stat = "identity") + 
+    facet_wrap(~ variable) +
+  ylab("h(z)")
+
+#fit bkmrGS::bkmrGS and get a plotable object
+bkmrGS_model <- bkmrGS(y ~ h(Log_Lead, Log_Manganese, Log_Arsenic, mod = Sex) + Age + Gestation + Delivery, 
+                          data = Liu_data,
+                          iter = 1000, 
+                          verbose = FALSE) 
+bkmrgs_input <- PredictorResponseUnivar(fit = bkmrGS_model, 
+                                            method = "exact",
+                                            q.fixed = 0.5)
+
+bkmrGS_plot <- ggplot(data = bkmrgs_input, aes(z, est, ymin = est - 1.96*se, 
+                                   ymax = est + 1.96*se, color = as.factor(modifier), fill = as.factor(modifier), linetype = as.factor(modifier))) + 
+  geom_smooth(stat = "identity") + 
+  geom_hline(yintercept=0)+
+  facet_wrap(vars(variable)) +
+  xlab("Exposure level (log transformed, centered/scaled)") +
+  ylab("Exposure-response function (h)") +
+  theme_classic() +
+  theme(legend.position = "bottom")+
+  labs(color="Child Sex", fill = "Child Sex", linetype = "Child Sex") +
+  scale_fill_manual(values=c("#E4A16C", "#789489"))+
+  scale_color_manual(values=c("#D9782D", "#1E4D2B"))
+
+```
+
+Here is a quick demonstration of the difference between standard BKMR
+and the group separable version of BKMR. In this example we know that
+the exposure response relationship differs by child sex. However
+standard BKMR ignores this relationship and assumes a common exposure
+response surface across all subjects. This first plot uses the example
+data (which we elaborate on later) and shows the results from improperly
+fitting it with standard `bkmr`.
+
+```{r, echo=FALSE}
+std_bkmr_plot
+```
+
+Below is the result of fitting `bkmrGS` to that same data, allowing for
+the exposure response function to vary by child sex group. Later in this
+vignette, we discuss the code which generated these plots.
+
+```{r, echo = FALSE}
+bkmrGS_plot
+```
+
+The standard BKMR fit misses certain trends across child sex by
+averaging across the two groups. Conversely, group separable BKMR is
+able to fit the difference in the exposure response relationship for
+males and females.
+
+# Worked data example bkmrGS
+
+In this section, we will provide a walk through of a data analysis
+showcasing the usability of `bkmrGS`.
+
+## Table of Contents
+
+-   [Data Set and Fitting](#data-fitting)
+-   [Model Fitting](#model-fitting)
+-   [Model Checking](#model-checking)
+-   [Model Output](#model-output)
+-   [Exposure-Response Relationship With Shiny](#shiny)
+    -   [Plotting_App Overview](#pao)
+    -   [Specified Combination Arguments](#SCA)
+
+## Data Set and Fitting {#data-fitting}
+
+Using the example data set in the package, we will fit the model using
+the `bkmrGS()` function. First load the data set:
+
+```{r}
+data("Liu_data")
+```
+
+In this data from the @liu2021 paper we
+have
+
+-   `y` is the response (neurodevelopment score, BSID-III)
+
+-   `Z` is a matrix of standardized exposures (`Log_Lead`, `Log_Manganese`,
+    and `Log_Arsenic` measured in the fetus cumulatively during gestation)
+
+-   `X` is a matrix of covariates (`Age`, `Sex`, `Gestation`, `Delivery`,
+    `Birth_order`, `Education_parent1`, `Education_parent2`, `Smoking`,
+    `HOME_emotional`, `HOME_avoid`, `HOME_careg`, `HOME_env`, `HOME_play`,
+    `HOME_stim`, and `Energy`)
+
+We used child sex (male/female) as a binary modifier of the effect of
+exposure on neurodevelopment. Included is a small snippet of the data
+frame
+
+```{r}
+head(Liu_data)
+```
+
+## Model Fitting {#model-fitting}
+
+Now fit the model with the `bkmrGS()` function. Typically, we would like to see at least 1,000
+usable iterations, but this largely depends on the effective sample
+size and model convergence. To check model convergence, see [Model
+Checking](#model-checking). Here, `bkmrGS()` takes the
+arguments
+
+-   `formula` a formula which takes the form of
+    `y ~ h(Z_1,..., Z_k, mod = modifier_name) + X_1 +...+X_n` where
+
+    -   `y`, the name of a column in the data frame that is the
+        response, note that it must be a column of a continuous variable
+
+    -   `h(Z_1, Z_2, ... ,Z_k, mod = modifier_name)`, the names of every
+        exposure included in the model (the `Z`'s), and the the name of
+        the modifier column (`mod`). This is default set to NULL and runs standard BKMR.
+
+    -   `X_1 + X_2 +...+ X_n`, the names of all covariates to be added to the model separated by plus signs
+
+-   `data`, the data frame where all the data is stored
+
+-   `iter`, the number of iterations the MCMC sampler is going to run,
+    which is defaulted to 1000.
+
+-   `burnin`, the number of burn in iterations removed from
+    final sampling, which is defaulted to `iter/2`, which would be
+    removing the first half of the samples
+
+-   `verbose`, `TRUE` or `FALSE` (default) indicator for controlling the amount of
+    live-time diagnostic which is outputted from the model,
+
+-   `gs.tau`, `TRUE` or `FALSE` (default) indicator for whether to use
+    group-specific $\tau$ parameters
+
+-   `gs.sig`, `TRUE` (default) or `FALSE` indicator for whether to estimate
+    separate error variance terms for each group
+
+-   `est.h`, `TRUE` or `FALSE` (default) indicator for whether to sample from the
+    posterior distribution of the subject-specific effects $h_i$ within
+    the main sampler
+
+More information about `gs.tau`, `gs.sig`, `est.h` please check their respective help
+files. Other parameters (`id`, `starting.values`, `control.params`,
+`varsel`, `groups`, `knots`, `ztest` and `rmethod`) are reused from the
+standard `bkmr` package [@bkmr_overview]. Here we can see
+
+```{r}
+set.seed(111) #for consistency in demonstration
+fitkm <- bkmrGS(y ~ h(Log_Lead, Log_Manganese, Log_Arsenic, mod = Sex) +
+                          Age + Gestation + Delivery + Birth_order +
+                          Education_parent1 + Education_parent2 + Smoking +
+                          HOME_emotional + HOME_avoid + HOME_careg + 
+                          HOME_env + HOME_play + HOME_stim + 
+                          Energy, #entire model in a GAM style
+                          data = Liu_data, #data frame
+                          iter = 1000, #MCMC iterations
+                          #iter = 5000 #this is an appropriate starting iteration value
+                          verbose = FALSE) #controls output during fitting
+
+```
+
+We can quickly look at the object by printing it and using the
+`summary()` function:
+
+```{r}
+summary(object = fitkm, #specify the model
+        digits = 2) #specify the number of digits in output
+```
+
+In the example output, we caused several warnings to be tripped based
+off the MCMC diagnostics. Acceptance rate warnings are displayed when
+the MH acceptance rate is either below 20% or above 50%, as both
+situations indicate poor mixing and possible convergence issues. We also
+trip a warning for having the effective sample size be low (ESS \< 500),
+very low (ESS \< 100), or unavailable. These all suggest potential
+convergence problems. Finally there are two additional warnings related
+to the number of retained posterior samples and burn-in. A warning will
+be show if we have fewer than 1000 posterior draws, since small
+posterior samples may lead to unstable estimates. The other warning is
+indicated if the burn-in period is less than 10% of the total
+iterations, meaning it might not have reached it's stationary
+distribution yet. See [Model
+Checking](#model-checking) for more details and trouble shooting.
+
+## Model Checking {#model-checking}
+
+Next, check the convergence of model parameters with the `TracePlot()`
+function. This function asks the parameter to be specified with the `par`
+argument and returns a line plot showing the sampled values of that parameter across MCMC iterations, along with the parameter's posterior mean displayed in orange. These trace plots should exhibits rapid up and down variation
+with no long-term trends or drifts. This indicates that the estimates
+have converged. Long-term trends or drifts in the plot indicate slower
+convergence, poor convergence, or no convergence at all. See "How to Handle Poor Mixing Results" in "User Implemented Changes" for more details and trouble shooting
+
+```{r, fig.width=8, fig.height=8}
+par(mfrow = c(2, 2))
+TracePlot(fitkm, par = "beta")
+TracePlot(fitkm, par = "sigsq.eps")
+TracePlot(fitkm, par = "lambda")
+TracePlot(fitkm, par = "r", comp = 1)
+```
+
+Note that in the trace plots above, we examined the behavior of both $\lambda$ and $\sigma^2$ which were not defined in our model outline. Both these parameters are defined in the model internally. $\sigma^2$ defines the residual variance parameter and $\lambda$ defines the kernel variance parameter. The $r$ parameters
+correspond to the exposures passed in the $h(\cdot)$ call, and therefore
+control the relative importance of each exposure's contribution. The $\lambda$ parameter controls the overall flexibility of the exposure response surface, while $\sigma^2$ quantifies the variability in the outcome that is not explained by the exposure-response function $h(\cdot)$ or the covariates in $X$. Rather than sampling $\tau$ directly, the model uses the reparameterization 
+
+$$\lambda = \frac{\tau}{\sigma^2}$$
+
+which generally improves the efficiency of posterior sampling. 
+Then, we should check the acceptance rates of $r$ and $\lambda$, to
+ensure they are being sampled properly.
+
+```{r}
+colMeans(fitkm$acc.r)
+colMeans(fitkm$acc.lambda)
+```
+
+In the code chunk above, we are pulling the saved decision
+(accept as 1 or reject as 0) from each iteration in the model. Then we are
+taking the column means which give the empirical acceptance rates for
+each parameter
+Acceptance rates vary from problem to problem, but should not be close
+to either 0 nor 1. A common rule of thumb is that the acceptance rates
+for both $r$ and $\lambda$ should ideally be between 0.2 and 0.5.
+Consider changing hyperparameters if acceptance rates are too high or
+too low. See @bkmr_overview for more
+details.
+
+## Model Output {#model-output}
+
+After reviewing the model to ensure proper mixing, and checking it's
+acceptance rates, we can move on to reviewing the model output. Here if
+we call the `ExtractEsts` function it will give us estimates for each of the
+model parameters as well as quantiles for those estimates.
+
+```{r}
+ExtractEsts(fitkm, par = "beta", digits = 2)
+ExtractEsts(fitkm, par = "sigsq.eps", digits = 2)
+ExtractEsts(fitkm, par = "lambda", digits = 2)
+ExtractEsts(fitkm, par = "r", digits = 2)
+```
+
+Similarly we
+can use `ExtractSamps` to get and view all the samples the MCMC algorithm
+decided to keep at each point
+
+```{r}
+samps <- ExtractSamps(fitkm, par = "beta")
+head(samps)
+```
+
+Both functions take in a `par` argument, which indicates which parameter values to return. It is set `par = NULL` at default, and will return every parameter unless otherwise specified. 
+
+## Exposure-Response Relationship With Shiny {#shiny}
+
+### Plotting_App Overview {#pao}
+
+This package includes a Shiny app designed to make finding and running specific plots easier. The application can be launched at any time using 
+
+`plotting_app()`
+
+When done, this opens the BKMR 
+Plot Generator interface. The app requires `Fit_Object_Name`, the exposure variation 
+type (`Overall`, `Single`, or `Bivariate`) and an analysis type 
+(`Group Specific`, `Between Groups` or `Response Function`). Once the exposure 
+and analysis types are specified, the corresponding inputs are displayed automatically. 
+
+The plotting app is separated into 5 different tabs: "Preview Plot", "Full Plot", "Generated Code", "Results", and "Interpretation". Once the
+`Fit Object Name`, `Exposure Variation`, and `Analysis Type` have been specified, the application can produce a preview plot, a full plot, the code used to 
+get these plots, the corresponding numerical results, and a brief generalized interpretation. 
+
+Selecting the "Create Preview Plot" button quickly generates a sample plot based on the current option settings, using the first 10 observations from the supplied fit object (`sel = 1:10`). This feature is designed to visually determine if these option settings will result in the desired plot. Selecting the "Create Full Plot" button will create a plot based on the current option settings, using all observations supplied through `Fit Object Name`. This will be displayed in the Full Plot tab. The Results tab displays the data used in either Preview Plot or Full Plot used for plotting. 
+
+The Generated Code tab displays a copy-and-paste version of the code used to generate those plot. There are a few comments, but any user changeable options that are specified by the sidebar in the app are editable in the first few lines of the code. The interpretation tab gives a brief generalized interpretation for each plot combination. The interpretations are always available, but the current option settings will be highlighted in black, while the other non selected options are grayed out. 
+
+This shiny app follows a hierarchical work flow. A fit object in the current environment must be available before any plots or results can be generated. After specifying the fit object, an exposure variation type must be selected. This choice determines whether the joint exposure movement, (Overall) or a single exposure movement, (Single). Note that for the bivariate type to work, a modifier must not be present. 
+
+Once an exposure variation has been selected, the Analysis type must be specified. This type  determines what to compare across. Comparing within one specific group, "Group Specific", Comparing interaction between groups, "Between Groups", or estimating the response function itself, "Response Function". 
+
+### Specified Combination Arguments {#SCA}
+
+Different Exposure Variation and Analysis Type combinations require different inputs that change dynamically based on the combination. Here is a more detailed list of those possible user specified inputs 
+
+- `q.fixed`: The quantile value at which the exposures not being varied are being held constant. Provides a reference point when estimating the effect of changes in the exposure mixture. This is defaulted to 0.5, or the median
+
+- `ngrid`: The integer number of grid points at which each exposure is evaluated. This is defaulted to 50
+
+- `qs`: An array of quantiles between 0 and 1, at which the mixture is evaluated. This is defaulted to `c(seq(0.25, 0.75, 0.05))` but can be changed to any array of quantiles the user desires. 
+
+- `m.fixed`: Indicates the modifier level, so the resulting estimates correspond to the group-specific function $h_w(Z)$. If no modifier is present, this value must be `NULL`
+
+- `qs.diff` specifies the lower and upper quantiles used for the "Single" Exposure Variation type. Note that this must be a list of exactly 2 quantiles between the values of 0 and 1. This is defaulted to `c(0.25, 0.75)`.
+
+- `mod.diff`: This argument is defaulted to `c("group_1", "group_2")` and indicates that the estimated differences corresponding to "group_2" minus "group_1". Note that this requires a modifier to be present and must be a list of exactly 2 modifier groups.
+
+Be aware that for any analysis type set to `analysis = 'Between Groups'`, there must be a modifier present for that function to return any values. 
+
+# User Implemented Changes
+
+## How to Change Estimation Methods
+
+Several functions in `bkmrGS` include a `method` argument that controls
+how risk summaries are computed. Different methods may vary in
+computational cost and the degree of approximation used. Specifically,
+all of the exposure-response functions have the `method` argument, which
+can be `approx`, `exact`, or `fullpost`. The default for this is
+changes depending on the function (check the help file for each function for defaults). When `method = approx`, the function uses a 
+Gaussian process approximation based on
+posterior mean and variance estimates. This reduces the computational
+burden slightly and scales better when there are many prediction points. Changing this to `method = exact` we see that the function is evaluated
+using a full Gaussian process. It also uses the exact covariance
+structure at the posterior mean parameter estimates. This is more
+precise at the cost of being more computationally expensive. Between
+`exact` and `approx` the only difference is that `approx` uses an
+approximation of the Gaussian process and the `exact` uses the actual
+Gaussian process. Finally the `method = fullpost` is only available for
+`PredictorResponseUnivar`. This computes the predictions separately at
+each MCMC iteration, and then summarizes these predictions across
+posterior samples.
+
+The function `bkmrGS()` also has a `kernel.method` call,
+which allows the user to run either standard BKMR if
+`kernel.method = "one"` or group separable BKMR if
+`kernel.method = "two"`. Note that if a modifier is included, it should be set to `kernel.method = "two"`, and that if a modifier is not included, `kernel.method = "one"` is set automatically. 
+
+For example, in functions such as `OverallRiskSummaries()` and
+`SingVarRiskSummaries()`, the argument `method = "exact"` computes risk
+differences directly using posterior samples of the exposure-response
+function. This approach is more accurate but can be computationally
+intensive. Alternative methods (e.g., `method = "approx"`) may use
+approximations to reduce computation time. These approaches can be
+useful for large data sets or when rapid exploratory analysis is
+desired, but may introduce additional variability or bias.
+
+## How to Change the Tuning Parameters
+
+The BKMR model is fit using Markov Chain Monte Carlo, therefore most of the parameters are updated using a Gibbs step. The $r_m$ and $\lambda$ parameters, however are updated using a Metropolis-Hastings step. We used a gamma proposal distribution with mean equal to the current value. 
+
+If the acceptance rates are too high (an acceptance rate higher than 50\%) this could lead to a slow mixing chain. If the acceptance rates are too low (an acceptance rate lower than 20\%), that could prevent the algorithm from properly exploring the parameter space. Thus it is essential for any MCMC to have good acceptance rates. Generally, these acceptance rate can be changed through the `control.params` argument. 
+When running standard BKMR, this argument will return a list of 1 value per parameter. On the other hand, when running group-separable BKMR, this argument will return a list of parameters for each specified group. Here is the list of tuning parameters and their starting values
+
+```{r}
+data.frame(fitkm$control.params)
+```
+
+Any value that ends in a `.jump` or `.muprop` is a tuning parameter and can be changed. For more information see @bkmr_overview
+
+## How to Change the Priors
+
+This package also allows users to modify prior distributions for the model
+parameters. Prior specification can be updated again through the
+`control.params` argument. Priors can be explored using the
+`InvestigatePriors()` function, which allows users to visualize the
+implied distributions under different hyperparameter choices. After
+specifying alternative priors, the `PlotPriorFits()` function can be
+used to visualize how these choices influence the implied
+exposure-response relationships. Here is the list of prior hyperparameters and their starting values
+
+```{r}
+data.frame(fitkm$control.params)
+```
+
+Any value that does not end in a `.jump` or `.muprop` is a prior parameter and can be changed. For more information see @bkmr_overview
+
+## How to Handle Poor Mixing Results
+
+Model convergence is essential when dealing with any form of Monte Carlo Markov Chain estimation. This allows us to be confident in the estimates, as this algorithm has stabilized around an optimal state. A few ways to test model convergence are through the `TracePlot` function and the effective sample size (`ess`) return when calling summary on a `bkmrGS` object. 
+
+To check the effectiveness of the model's sampling, a trace plot is ideal. Like we talked about in the Model Checking Section, we want to see no obvious trends (post burn in) and a rapid up and down variation with no drifts. If this is not the case, either increase the number number of samples (try `iter = 1500,...,burnin = 500` in the `bkmrGS()` call or larger) or adjust the tuning parameters. 
+
+If the effective sample size is too low, this indicates that the chains are producing highly correlated estimates, and it is taking a long time to explore the parameter space. If the effective sample size is too low, the summary will produce a warning. If this is the case, either try increasing the number of samples (try `iter = 1500, ... , burnin = 500` in the `bkmrGS()` call or larger) or adjusting the tuning parameters. 
+
+If these are not working for a specific problem, two good resources for MCMC diagnostics and solutions are ["Markov Chain Monte Carlo (MCMC) diagnostics"](https://www.statlect.com/fundamentals-of-statistics/Markov-Chain-Monte-Carlo-diagnostics) from @taboga2021mcmcdiagnostics or ["Exploratory Analysis of Bayesian Models"](https://arviz-devs.github.io/EABM/) online workbook from @eabm_2025.
+
+# References
+
+
+
+
+
+
+
+
+
+

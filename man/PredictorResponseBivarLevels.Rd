@@ -15,6 +15,8 @@ PredictorResponseBivarLevels(
 \arguments{
 \item{pred.resp.df}{object obtained from running the function \code{\link{PredictorResponseBivar}}}
 
+\item{Z}{an \code{n}-by-\code{M} matrix of predictor variables to be included in the \code{h} function. Each row represents an observation and each column represents an predictor, inherited by bkmrGS.}
+
 \item{qs}{vector of quantiles at which to fix the second variable}
 
 \item{both_pairs}{flag indicating whether, if \code{h(z1)} is being plotted for z2 fixed at different levels, that they should be plotted in the reverse order as well (for \code{h(z2)} at different levels of z1)}

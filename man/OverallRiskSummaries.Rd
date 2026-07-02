@@ -6,10 +6,6 @@
 \usage{
 OverallRiskSummaries(
   fit,
-  y = NULL,
-  Z = NULL,
-  X = NULL,
-  modifier = NULL,
   qs = seq(0.25, 0.75, by = 0.05),
   q.fixed = 0.5,
   m.fixed = NULL,
@@ -18,7 +14,7 @@ OverallRiskSummaries(
 )
 }
 \arguments{
-\item{fit}{An object containing the results returned by a the \code{bkmrGS} function}
+\item{fit}{an object of class "bkmrfit"}
 
 \item{qs}{vector of quantiles at which to calculate the overall risk summary}
 

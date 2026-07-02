@@ -758,7 +758,7 @@ kmbayesBlocked <- function(y, Z, X,
     }
     ## for those variables being selected: joint posterior of (r,delta)
     if (varsel) {
-      varcomps <- rdelta.update.block(r = rSim, delta = chain$delta[s - 1,], lambda = chain$lambda[s,], y = y, X = X, beta = chain$beta[s,], sigsq.eps = chain$sigsq.eps[s, ], Vcomps = Vcomps, Z = Z, ztest = ztest, data.comps = data.comps, control.params = control.params, rprior.logdens = rprior.logdens, rprop.gen1 = rprop.gen1, rprop.logdens1 = rprop.logdens1, rprop.gen2 = rprop.gen2, rprop.logdens2 = rprop.logdens2, rprop.gen = rprop.gen, rprop.logdens = rprop.logdens)
+      varcomps <- rdelta.update(r = rSim, delta = chain$delta[s - 1,], lambda = chain$lambda[s,], y = y, X = X, beta = chain$beta[s,], sigsq.eps = chain$sigsq.eps[s, ], Vcomps = Vcomps, Z = Z, ztest = ztest, data.comps = data.comps, control.params = control.params, rprior.logdens = rprior.logdens, rprop.gen1 = rprop.gen1, rprop.logdens1 = rprop.logdens1, rprop.gen2 = rprop.gen2, rprop.logdens2 = rprop.logdens2, rprop.gen = rprop.gen, rprop.logdens = rprop.logdens)
       chain$delta[s,] <- varcomps$delta
       rSim <- varcomps$r
       chain$move.type[s] <- varcomps$move.type
@@ -835,10 +835,9 @@ kmbayesBlocked <- function(y, Z, X,
 #' Fits the Bayesian kernel machine regression (BKMR) model with group-separable kernel or with standard kernel using Markov chain Monte Carlo (MCMC) methods.
 #'
 #' @export
-#'
-#' @param formula a formula
-#' @param data a data frame
-#' @param iter number of iterations to run the sampler
+#' @param formula A model formula specifying the outcome, exposure mixture, and any additional covariates. The exposure mixture must be wrapped in \code{h()}, and be similar to \code{y ~ h(z1, z2, z3, mod = modifier) + x1 + x2 + x3}
+#' @param data A data frame containing the variables referenced in \code{formula}, all variables used inthe model must be present in this data frame
+#' @param iter An integer specifying the total number of MCMC to perform, including burn-in
 #' @param family a description of the error distribution and link function to be used in the model. Currently implemented for \code{gaussian} and \code{binomial} families.
 #' @param id optional vector (of length \code{n}) of grouping factors for fitting a model with a random intercept. If NULL then no random intercept will be included.
 #' @param verbose TRUE or FALSE: flag indicating whether to print intermediate diagnostic information during the model fitting.
@@ -854,6 +853,7 @@ kmbayesBlocked <- function(y, Z, X,
 #' @param gs.tau TRUE or FALSE: indicator for whether to use group-specific tau parameters, only available for the group-separable method (\code{kernel.method = "two"})
 #' @param gs.sig TRUE or FALSE: indicator for whether to estimate separate error variance terms for each group. Only available for the group-separable method (\code{kernel.method = "two"})
 #' @param burnin An integer that specifies how many observation will be discarded for burnin. 
+#' @param Znew matrix of new predictor values at which to predict new \code{h}, where each row represents a new observation. If set to NULL then will default to using the observed exposures Z.
 #' @return an object of class "bkmrfit" (containing the posterior samples from the model fit), which has the associated methods:
 #' \itemize{
 #'   \item \code{\link{print}} (i.e., \code{\link{print.bkmrfit}}) 
@@ -1139,7 +1139,7 @@ summary.bkmrfit <- function(object, q = c(0.025, 0.975), digits = 5, show_ests =
         paste(
           "Low Metropolis Hastings acceptance rates (<20%):",
           paste(low_acc, collapse = ", "),
-          "- chain mixes poorly. Check the user implimented changes in vignettes(VignetteDraft) for more help"
+          "- chain mixes poorly. Check the 'User Implemented Changes' section in vignettes(VignetteDraft) for more help"
         )
       )
     }
@@ -1150,7 +1150,7 @@ summary.bkmrfit <- function(object, q = c(0.025, 0.975), digits = 5, show_ests =
         paste(
           "High Metropolis Hastings acceptance rates (>50%):",
           paste(high_acc, collapse = ", "),
-          "- proposals may be too small. Check the user implimented changes in vignettes(VignetteDraft) for more help"
+          "- proposals may be too small. Check the 'User Implemented Changes' section in vignettes(VignetteDraft) for more help"
         )
       )
     }
@@ -1158,7 +1158,7 @@ summary.bkmrfit <- function(object, q = c(0.025, 0.975), digits = 5, show_ests =
   }
   if (show_ests) {
     sel <- with(x, seq(burnin + 1, iter))
-    cat("\nParameter estimates (based on iterations ", min(sel), "-", max(sel), "):\n", sep = "")
+    #cat("\nParameter estimates (based on iterations ", min(sel), "-", max(sel), "):\n", sep = "")
     #flag here? for checking estimates on the summary?
     ests <- ExtractEsts(x, q = q, sel = sel)
     if (!is.null(ests$h)) {
@@ -1208,7 +1208,7 @@ summary.bkmrfit <- function(object, q = c(0.025, 0.975), digits = 5, show_ests =
         paste(
             "Low effective sample size (<500):",
             paste(low_ess, collapse = ", "),
-            "- posterior estimates may be unstable. Check the user implimented changes in vignettes(VignetteDraft) for more help"
+            "- posterior estimates may be unstable. Check the 'User Implemented Changes' section in vignettes(VignetteDraft) for more help"
         )
       )
     }
@@ -1219,7 +1219,7 @@ summary.bkmrfit <- function(object, q = c(0.025, 0.975), digits = 5, show_ests =
         paste(
           "Very low effective sample size (<100):",
           paste(very_low_ess, collapse = ", "),
-          "- convergence is questionable. Check the user implimented changes in vignettes(VignetteDraft) for more help"
+          "- convergence is questionable. Check the 'User Implemented Changes' section in vignettes(VignetteDraft) for more help"
         )
       )
     }
@@ -1230,7 +1230,7 @@ summary.bkmrfit <- function(object, q = c(0.025, 0.975), digits = 5, show_ests =
         paste(
           "Effective sample size is NULL:",
           paste(null_ess, collapse = ", "),
-          "- convergence has not been attained. Check the user implimented changes in vignettes(VignetteDraft) for more help"
+          "- convergence has not been attained. Check the 'User Implemented Changes' section in vignettes(VignetteDraft) for more help"
         )
       )
     }
