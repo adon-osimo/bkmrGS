@@ -115,20 +115,22 @@ interpretability.
 set.seed(456)
 data("Liu_data")
 str(Liu_data)
-y <- Liu_data$y
+Liu_data
 #fit bkmr::kmbayes and get a plotable object
-bkmr_model <- bkmrGS(y ~ h(Log_Lead, Log_Manganese, Log_Arsenic) + Age, 
+bkmr_model <- bkmrGS(y ~ h(Log_Lead, Log_Manganese, Log_Arsenic, mod = NULL) + Age + Gestation + Delivery, 
                           data = Liu_data,
-                          iter = 1000, 
+                          iter = 100, 
                           verbose = FALSE) 
-bkmr_input <- PredictorResponseUnivar(fit = bkmr_model)
+bkmr_input <- PredictorResponseUnivar(fit = bkmr_model,
+                                      method = "exact",
+                                      q.fixed = 0.5)
 std_bkmr_plot <- ggplot(bkmr_input, aes(z, est, ymin = est - 1.96*se, ymax = est + 1.96*se)) + 
     geom_smooth(stat = "identity") + 
     facet_wrap(~ variable) +
   ylab("h(z)")
 
 #fit bkmrGS::bkmrGS and get a plotable object
-bkmrGS_model <- bkmrGS(y ~ h(Log_Lead, Log_Manganese, Log_Arsenic, mod = Sex) + Age, 
+bkmrGS_model <- bkmrGS(y ~ h(Log_Lead, Log_Manganese, Log_Arsenic, mod = Sex) + Age + Gestation + Delivery, 
                           data = Liu_data,
                           iter = 1000, 
                           verbose = FALSE) 
@@ -148,6 +150,7 @@ bkmrGS_plot <- ggplot(data = bkmrgs_input, aes(z, est, ymin = est - 1.96*se,
   labs(color="Child Sex", fill = "Child Sex", linetype = "Child Sex") +
   scale_fill_manual(values=c("#E4A16C", "#789489"))+
   scale_color_manual(values=c("#D9782D", "#1E4D2B"))
+
 ```
 
 Here is a quick demonstration of the difference between standard BKMR
