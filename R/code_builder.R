@@ -38,7 +38,7 @@ generate_code <- function(
     build_point_constructor(exposure, analysis),
     build_iteration_engine(exposure, analysis),
     build_output_formatter(exposure, analysis),
-    build_plotting(exposure, analysis)
+    build_plotting(exposure, analysis, m.fixed)
   )
   
   paste(code, collapse = "\n")
@@ -230,10 +230,9 @@ build_point_constructor <- function(exposure, analysis){
         "z.names <- colnames(Z)"
       ))
       
-    }
-    
-    
-    ret <- c(ret, c("# Restrict exposure support",
+    } 
+    if(exposure == "Overall"){
+      ret <- c(ret, c("# Restrict exposure support",
                     "Z_for_quants <- Z_support(",
                     "  Z = fit$Z,",
                     "  mod.diff = mod.diff,",
@@ -241,6 +240,7 @@ build_point_constructor <- function(exposure, analysis){
                     ")",
                     "modnew.1 <- rep(mod.diff[1], 2)",
                     "modnew.2 <- rep(mod.diff[2], 2)"))
+    }
   
   }
     
@@ -251,13 +251,18 @@ build_iteration_engine <- function(exposure, analysis){
   if(exposure == "Overall" && analysis == "Group Specific"){
     
     c("Z <- fit$Z",
-      "if(m.fixed == 'All'){",
+      "if(m.fixed == 'NULL'){",
+      "  iter_over <- c(0)",
+      "}else if(m.fixed == 'All'){",
       "   iter_over <- c(unique(as.character(fit$modifier)))",
       "} else{",
       "   iter_over <- c(m.fixed)}",
       "results <- data.frame()",
       "for(m in iter_over){",
-      "  m.fixed <- m",
+      "  if(m == 0){",
+      "    m.fixed <- NULL",
+      "  } else {",
+      "  m.fixed <- m}",
       "  if(!is.null(m.fixed)) {",
       "    modnew <- matrix(rep(m.fixed, 2), ncol = 1)",
       "    Z_for_quants <- Z[fit$modifier == m.fixed, ]",
@@ -291,15 +296,24 @@ build_iteration_engine <- function(exposure, analysis){
   
   else if(exposure == "Single" && analysis == "Group Specific"){
     
-    c("if(m.fixed == 'All'){",
+    c("if(m.fixed == 'NULL'){",
+      "iter_over <- c(0)",
+      "}else if(m.fixed == 'All'){",
       "   iter_over <- c(unique(as.character(fit$modifier)))",
       "} else{",
       "   iter_over <- c(m.fixed)}",
       "results <- data.frame()",
       "for(m in iter_over){",
-      "  m.fixed <- m",
-      "  modnew <- matrix(rep(m.fixed, 2), ncol = 1)",
-      "  Z_for_quants <- Z[fit$modifier == m.fixed, ]",
+      "  if(m != 0){",
+      "    m.fixed <- m",
+      "    modnew <- matrix(rep(m.fixed, 2), ncol = 1)",
+      "    Z_for_quants <- Z[fit$modifier == m.fixed, ]",
+      "  }",
+      "  else{",
+      "    m.fixed <- NULL",
+      "    modnew <- NULL",
+      "    Z_for_quants <- Z",
+      "  }",
       "  results_tmp <-  lapply(seq_along(q.fixed), function(i) {",
       "    lapply(seq_along(which.z), function(j) {",
       "      point1 <- apply(Z_for_quants, 2, quantile, q.fixed)",
@@ -363,7 +377,18 @@ build_iteration_engine <- function(exposure, analysis){
   
   else if(exposure == "Single" && analysis == "Between Groups"){
     
-    c("results <- lapply(which.z, function(j) {",
+    c("if(!is.null(mod.diff)){",
+      "modnew.1 <- rep(mod.diff[1], 2)",
+      "modnew.2 <-rep(mod.diff[2], 2)",
+      "Z_for_quants <- Z_support(Z = Z, ",
+      "                          mod.diff = mod.diff, ",
+      "                          modifier = fit$modifier)",
+      "}else{",
+      "  modnew.1 <- rep(NULL, 2)",
+      "  modnew.2 <- rep(NULL, 2)",
+      "  Z_for_quants <- Z",
+      "}",
+      "results <- lapply(which.z, function(j) {",
       "  point1 <- apply(Z_for_quants, 2, quantile, q.fixed)",
       "  point2 <- point1",
       "  point1[j] <- quantile(Z_for_quants[, j], qs.diff[1])",
@@ -390,7 +415,11 @@ build_iteration_engine <- function(exposure, analysis){
       "for(i in which.z) {",
       "  whichz <- i",
       "  colnames(Z) <- paste0('z', 1:ncol(Z))",
-      "  Z_for_quants <- Z_support(Z = Z, mod.diff = levels(modifier), modifier = modifier)",
+      "  if(!is.null(modifier)){",
+      "    Z_for_quants <- Z_support(Z = Z, mod.diff = levels(modifier), modifier = modifier)",
+      "  }else{",
+      "    Z_for_quants <- Z",
+      "  }",
       "  ord <- c(whichz, setdiff(1:ncol(Z_for_quants), whichz))",
       "  z1 <- seq(min(Z_for_quants[,ord[1]]), max(Z_for_quants[,ord[1]]), length = ngrid)",
       "  z.others <- lapply(2:ncol(Z_for_quants), function(x) quantile(Z[,ord[x]], q.fixed))",
@@ -408,6 +437,9 @@ build_iteration_engine <- function(exposure, analysis){
       "        z1 <- c(z1, z1_tmp)",
       "      }",
       "    }",
+      "  }else{",
+      "      Z_for_quants <- Z",
+      "      mod_new <- NULL",
       "  }",
       "  mindists <- rep(NA,nrow(newz.grid))",
       "  for (j in seq_along(mindists)) {",
@@ -422,7 +454,11 @@ build_iteration_engine <- function(exposure, analysis){
       "    preds.plot <- preds.plot - mean(preds.plot)", 
       "  }",
       "  res <- dplyr::tibble(z = z1, modifier = mod_new, est = preds.plot, se = se.plot)",
-      "  df0 <- dplyr::mutate(res, variable = z.names[i]) %>% dplyr::select_at(c('variable', 'z', 'modifier', 'est', 'se'))",
+      "  if(is.null(mod_new)){",
+      "    df0 <- dplyr::mutate(res, variable = z.names[i]) %>% dplyr::select_at(c('variable', 'z', 'est', 'se'))",
+      "  }else{",
+      "    df0 <- dplyr::mutate(res, variable = z.names[i]) %>% dplyr::select_at(c('variable', 'z', 'modifier', 'est', 'se'))",
+      "  }      ",
       "  results <- dplyr::bind_rows(results, df0)",
       "}",
       "results$variable <- factor(results$variable, levels = z.names[which.z])")
@@ -463,12 +499,13 @@ build_output_formatter <- function(exposure, analysis){
 
 #Need to change this to only have the plot_obj returned
 #I think this is good, just have to check that what I am calling on is correct
-build_plotting <- function(exposure, analysis){
+build_plotting <- function(exposure, analysis, m.fixed){
+  
   if(exposure == "Overall" && analysis == "Group Specific"){
-    c("plot_obj <- ggplot(results,",
+    if(m.fixed != "NULL"){
+      c("plot_obj <- ggplot(results,",
       "       aes(x=quantile, y = est, ymin = est - 1.96*sd,",
-      "           ymax = est + 1.96*sd, color = modifier, ",
-      "           shape = modifier)) + ",
+      "           ymax = est + 1.96*sd, color = modifier, shape = modifier)) + ", 
       "  geom_hline(yintercept = 0) +",
       "  geom_pointrange(position = position_dodge(width = 0.05), size = 0.5) +",
       "  theme_bw()+",
@@ -476,23 +513,54 @@ build_plotting <- function(exposure, analysis){
       "        axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + ",
       "  xlab('Quantiles')+",
       "  ylab('Difference in Response \n per Change in Exposure') + ",
-      "  labs(color='modifier_name', shape = 'modifier_name')" )
+      "  labs(color='modifier_name', shape = 'modifier_name')" ) 
+    }
+    
+    else{
+      c("plot_obj <- ggplot(results,",
+        "       aes(x=quantile, y = est, ymin = est - 1.96*sd,",
+        "           ymax = est + 1.96*sd)) + ", 
+        "  geom_hline(yintercept = 0) +",
+        "  geom_pointrange(position = position_dodge(width = 0.05), size = 0.5) +",
+        "  theme_bw()+",
+        "  theme(legend.position = 'bottom',",
+        "        axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + ",
+        "  xlab('Quantiles')+",
+        "  ylab('Difference in Response per Change in Exposure') ")
+    }
   }
 
   else if(exposure == "Single" && analysis == "Group Specific"){
-    c("plot_obj <- ggplot(results,",
-      "                   aes(x=q.fixed, y = est, ymin = est - 1.96*sd,",
-      "                       ymax = est + 1.96*sd, color = modifier, ",
-      "                       shape = modifier))+",
-      "  geom_hline(yintercept=0)+",
-      "  geom_pointrange(position = position_dodge(width = 0.05), size=0.5)+",
-      "  facet_wrap(vars(variable))+",
-      "  theme_bw()+",
-      "  theme(legend.position = 'bottom',",
-      "        axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + ",
-      "        xlab('Quantile')+",
-      "        ylab('Difference in Response \n per Change in Exposure') +",
-      "        labs(color='modifier_name', shape = 'modifier_name')")
+    
+    if(m.fixed != "NULL"){
+      c("plot_obj <- ggplot(results,",
+        "                   aes(x=q.fixed, y = est, ymin = est - 1.96*sd,",
+        "                       ymax = est + 1.96*sd, color = modifier, ", 
+        "                       shape = modifier))+",
+        "  geom_hline(yintercept=0)+",
+        "  geom_pointrange(position = position_dodge(width = 0.05), size=0.5)+",
+        "  facet_wrap(vars(variable))+",
+        "  theme_bw()+",
+        "  theme(legend.position = 'bottom',",
+        "        axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + ",
+        "        xlab('Quantile')+",
+        "        ylab('Difference in Response \n per Change in Exposure') +",
+        "        labs(color='modifier_name', shape = 'modifier_name')")  
+    }
+    
+    else{
+      c("plot_obj <- ggplot(results,",
+        "                   aes(x=q.fixed, y = est, ymin = est - 1.96*sd,",
+        "                       ymax = est + 1.96*sd))+",
+        "  geom_hline(yintercept=0)+",
+        "  geom_pointrange(position = position_dodge(width = 0.05), size=0.5)+",
+        "  facet_wrap(vars(variable))+",
+        "  theme_bw()+",
+        "  theme(legend.position = 'bottom',",
+        "        axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + ",
+        "        xlab('Quantile')+",
+        "        ylab('Difference in Response \n per Change in Exposure')") 
+    }
   }
   
   else if(exposure == "Overall" && analysis == "Between Groups"){
@@ -521,7 +589,7 @@ build_plotting <- function(exposure, analysis){
   else if(exposure == "Single" && analysis == "Response Function"){
     c(
       "plot_obj <- ggplot(results, aes(z, est, ymin = est - 1.96*se, ",
-      "                             ymax = est + 1.96*se, color = modifier, fill = modifier, linetype = modifier)) + ",
+      "                             ymax = est + 1.96*se, color = modifier, fill = modifier, linetype = modifier)) + ", #split this apart to accept mod = NULL values 
       "  geom_smooth(stat = 'identity') + ",
       "  geom_hline(yintercept=0)+",
       "  facet_wrap(vars(variable)) +",
@@ -529,7 +597,7 @@ build_plotting <- function(exposure, analysis){
       "  ylab('Ylab') +",
       "  theme_classic() +",
       "  theme(legend.position = 'bottom')+",
-      "  labs(color='modifier_name', fill = 'modifier_name', linetype = 'modifier_name')"
+      "  labs(color='modifier_name', fill = 'modifier_name', linetype = 'modifier_name')" #split this apart to accept mod = NULL values 
     )
   }
 }
@@ -558,11 +626,11 @@ generate_interpretation <- function(exposure, analysis){
   }
   
   if(exposure == "Single" && analysis == "Group Specific"){
-    ret <- c(ret, c("For a fixed modifier group \\(w\\), it evaluates the change in the outcome when the a single exposure is set to a specified quantile level, relative to all other exposures being set to a reference quantile level. Mathematically this corresponds to:",
+    ret <- c(ret, c("For a fixed modifier group \\(w\\), it evaluates the change in the outcome when the a single exposure, is set to a specified quantile level, relative to all other exposures being set to a reference quantile level. Mathematically this corresponds to:",
                     ""  ,
-                    "$$h_{w}(Z_1^{q.fixed}, . . . , Z_k^{qs.diff[1]},. . .,Z_n^{q.fixed}) - h_{w}(Z_1^{q.fixed}, . . ., Z_k^{qs.diff[2]},. . . ,Z_n^{q.fixed})$$",
+                    "$$h_{w}(Z_1^{q.fixed}, . . . , Z_p^{qs.diff[1]},. . .,Z_k^{q.fixed}) - h_{w}(Z_1^{q.fixed}, . . ., Z_p^{qs.diff[2]},. . . ,Z_k^{q.fixed})$$",
                     ""  ,
-                    "where \\(h_w (Z)\\) denotes the group-specific exposure-response function, \\(Z_k^{qs.diff}\\) represents a specific exposure (\\k\\) set to the specified quantiles, and \\(Z_k^{q.fixed}\\) represents a specific exposure (\\k\\) set to the reference quantiles. ",
+                    "where \\(h_w (Z)\\) denotes the group-specific exposure-response function, \\(Z_p^{qs.diff}\\) represents a specific exposure \\(p\\) set to the specified quantiles, and \\(Z_p^{q.fixed}\\) represents a specific exposure \\(p\\) set to the reference quantiles. ",
                     "",
                     "The estimated value (`est`) can be interpreted as the expected changein the outcome for modifier group \\(w\\) when the isolated exposure shiftsfrom the first difference quantile to the second difference quantile, while holding every other exposure at the reference quantile. Graphically,we see these estimates as a point, surrounded by a Wald confidence interval."))
   }
@@ -582,12 +650,12 @@ generate_interpretation <- function(exposure, analysis){
   if(exposure == "Single" && analysis == "Between Groups"){
     ret <- c(ret, c("This function evaluates how the effect of a single exposure differs between modifier groups while holding all other exposures fixed at a reference quantile level. Mathematically, this corresponds to",
                     "",
-                    "$$(h_{w_1}(Z_1^{q.fixed}, . . . , Z_k^{qs.diff[1]},...,Z_n^{q.fixed}) - h_{w_1}(Z_1^{q.fixed}, . . ., Z_k^{qs.diff[1]},...,Z_n^{q.fixed}) - $$",
-                    "$$(h_{w_2}(Z_1^{q.fixed}, . . ., Z_k^{qs.diff[1]},...,Z_n^{q.fixed}) - h_{w_2}(Z_1^{q.fixed}, . . ., Z_k^{qs.diff[1]},...,Z_n^{q.fixed})).$$",
+                    "$$(h_{w_1}(Z_1^{q.fixed}, . . . , Z_p^{qs.diff[1]},...,Z_k^{q.fixed}) - h_{w_1}(Z_1^{q.fixed}, . . ., Z_p^{qs.diff[2]},...,Z_k^{q.fixed}) - $$",
+                    "$$(h_{w_2}(Z_1^{q.fixed}, . . ., Z_p^{qs.diff[1]},...,Z_k^{q.fixed}) - h_{w_2}(Z_1^{q.fixed}, . . ., Z_p^{qs.diff[2]},...,Z_k^{q.fixed})).$$",
                     "" ,
-                    "Here, \\(h_w(Z)\\) denotes the group-specific exposure-response function, \\(z_m^{qs_1}\\) and \\(z_m^{qs_2}\\) represent the selected exposure set to the lower and upper quantiles specified by `qs.diff`, and \\(Z_{-m}^{q.fixed}\\) represents all remaining exposures held fixed at the reference quantile level.",
+                    "Here, \\(h_w(Z)\\) denotes the group-specific exposure-response function, \\(Z_p^{qs.diff[1]}\\) and \\(Z_p^{qs.diff[2]}\\) represent the selected exposure set to the lower and upper quantiles specified by `qs.diff`, while all remaining exposures held fixed at the reference quantile level.",
                     "",
-                    "The estimated effect (`est`) measures the difference in the single-exposure effect between modifier groups \\(w_1\\) and \\(w_2\\). Specifically, it represents how much larger (or smaller) the expected change in the outcome associated with increasing the selected exposure from \\(qs_1\\) to \\(qs_2\\) is in group \\(w_1\\) compared with group \\(w_2\\), while all other exposures remain fixed.",
+                    "The estimated effect (`est`) measures the difference in the single-exposure effect between modifier groups \\(w_1\\) and \\(w_2\\). Specifically, it represents how much larger (or smaller) the expected change in the outcome associated with increasing the selected exposure from \\(qs.diff[1]\\) to \\(qs.diff[2]\\) is in group \\(w_1\\) compared with group \\(w_2\\), while all other exposures remain fixed.",
                     ""))
   }
 
@@ -595,9 +663,9 @@ generate_interpretation <- function(exposure, analysis){
     ret <- c(ret, c(
       "This function estimates the exposure-response relationship for a single exposure within each modifier group while holding all remaining exposures fixed at a reference quantile level. Mathematically, this corresponds to:",
       "",
-      "$$h_w(Z_1^{q.fixed},...,Z_k,..., Z_m^{q.fixed})$$",
+      "$$h_w(Z_1^{q.fixed},...,Z_p,..., Z_k^{q.fixed})$$",
       "",
-      "where \\(h_w(Z)\\) denotes the group-specific exposure-response function, \\(Z_k\\) is the exposure being varied across its observed range, and \\(Z_{m}^{q.fixed}\\) represents all remaining exposures held fixed at the reference quantile level.",
+      "where \\(h_w(Z)\\) denotes the group-specific exposure-response function, \\(Z_p\\) is the exposure being varied across its observed range, and \\(Z_{k}^{q.fixed}\\) represents all remaining exposures held fixed at the reference quantile level.",
       "",
       "The resulting curves describe the expected outcome as the selected exposure changes while all other exposures remain fixed. Separate curves are estimated for each modifier group, allowing direct visualization of differences in exposure-response relationships across groups.",
       "",

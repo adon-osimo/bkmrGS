@@ -31,18 +31,17 @@ ui <- fluidPage(
       ),
       
       hr(),
+      #selectInput(
+      #  "exposure",
+      #  "Exposure Variation (What is changing?)",
+      #  choices = c("Overall", "Single", "Bivariate")
+      #),
       
       selectInput(
-        "exposure",
-        "(What is changing?) Exposure Variation",
-        choices = c("Overall", "Single", "Bivariate")
+        "analysis",
+        "Analysis Type (What is being compared?):",
+        choices = c("Group Specific", "Between Groups", "Response Function")
       ),
-      
-      #selectInput(
-      #  "analysis",
-      #  "(What is being compared?) Difference Type:",
-      #  choices = c("Group Specific", "Between Groups", "Response Function")
-      #),
       
       uiOutput("analysis_ui"),
       uiOutput("exposure_Overall"),
@@ -53,10 +52,18 @@ ui <- fluidPage(
       uiOutput("analysis_er"),
       uiOutput("interpretation"),
       
+      hr(),
+      
+      p("The preview plot allows you to run the current settings in a small size (data points 1 through 10) and judge if the current settings will produce the desired plot"),
+      
       actionButton(
         "prev",
         "Create Preview Plot"
       ),
+      
+      hr(),
+      
+      p("Once you have the correct settings, the full plot button will run with all data and will take much longer"),
       
       actionButton(
         "go",
@@ -132,38 +139,37 @@ server <- function(input, output, session){
   
   output$analysis_ui <- renderUI({
     
-    req(input$exposure)
+    req(input$analysis)
     
-    if(input$exposure == "Overall"){
+    if(input$analysis == "Group Specific"){
       
       selectInput(
-        "analysis",
-        "(What is being compared?) Analysis Type",
+        "exposure",
+        "Exposure Type (What is changing):",
         choices = c(
-          "Group Specific",
-          "Between Groups"
+          "Overall",
+          "Single"
+        )
+      )
+    
+    }else if(input$analysis == "Between Groups"){
+      
+      selectInput(
+        "exposure",
+        "Exposure Type (What is changing):",
+        choices = c(
+          "Overall",
+          "Single"
         )
       )
       
-    } else if(input$exposure == "Single"){
+    } else if(input$analysis == "Response Function"){
       
       selectInput(
-        "analysis",
-        "(What is being compared?) Analysis Type",
+        "exposure",
+        "Exposure Type (What is changing):",
         choices = c(
-          "Group Specific",
-          "Between Groups",
-          "Response Function"
-        )
-      )
-      
-    } else if(input$exposure == "Bivariate"){
-      
-      selectInput(
-        "analysis",
-        "(What is being compared?) Analysis Type",
-        choices = c(
-          "Response Function"
+          "Single"
         )
       )
       
@@ -175,9 +181,6 @@ server <- function(input, output, session){
     
     req(fit())
     
-    if(is.null(fit()$modifier)){
-      return(NULL)
-    }
     
     if(input$exposure != "Overall"){
       return(NULL)
@@ -208,8 +211,11 @@ server <- function(input, output, session){
     
     req(fit())
     
-    if(is.null(fit()$modifier)){
-      return(NULL)
+    if(!is.null(fit()$modifier)){
+      user_choices = c(unique(as.character(fit()$modifier)), "All")
+    }
+    else{
+      user_choices = c('NULL')
     }
     
     if(input$analysis != "Group Specific"){
@@ -221,7 +227,7 @@ server <- function(input, output, session){
       selectInput(
         "m.fixed",
         "(m.fixed) Fixed Modifier",
-        choices = c(unique(as.character(fit()$modifier)), "All")
+        choices = user_choices
       )
       
     )
@@ -232,10 +238,6 @@ server <- function(input, output, session){
     
     req(fit())
     
-    if(is.null(fit()$modifier)){
-      return(NULL)
-    }
-    
     if(input$analysis != "Between Groups"){
       return(NULL)
     }
@@ -245,7 +247,7 @@ server <- function(input, output, session){
       textInput(
         "mod.diff",
         "(mod.diff) Modifier Values to Compare (e.g. c('Group_1', 'Group_2'))",
-        value = paste0("c('", unique(as.character(fit()$modifier))[1], "' ,'", unique(as.character(fit()$modifier))[2], "' )")
+        value = paste0("c('", unique(as.character(fit()$modifier))[1], "', '", unique(as.character(fit()$modifier))[2], "')")
       )
       
     )
@@ -255,10 +257,6 @@ server <- function(input, output, session){
   output$exposure_Single_1 <- renderUI({
     
     req(fit())
-    
-    if(is.null(fit()$modifier)){
-      return(NULL)
-    }
     
     if(!(input$analysis == "Group Specific" && input$exposure == "Single")){
       return(NULL)
@@ -289,9 +287,6 @@ server <- function(input, output, session){
     
     req(fit())
     
-    if(is.null(fit()$modifier)){
-      return(NULL)
-    }
     
     if(!(input$analysis == "Between Groups" && input$exposure == "Single")){
       return(NULL)
@@ -320,10 +315,6 @@ server <- function(input, output, session){
   
   output$analysis_er <- renderUI({
     req(fit())
-    
-    if(is.null(fit()$modifier)){
-      return(NULL)
-    }
     
     if(!(input$analysis == "Response Function" && input$exposure == "Single")){
       return(NULL)
