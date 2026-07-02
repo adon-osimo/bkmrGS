@@ -2,10 +2,10 @@
 % Please edit documentation in R/run_plotting_app.R
 \name{plotting_app}
 \alias{plotting_app}
-\title{Launch the BKMR Shiny App}
+\title{Launch the group-separable BKMR Shiny App}
 \usage{
 plotting_app()
 }
 \description{
-Launch the BKMR Shiny App
+Launch the group-separable BKMR Shiny App
 }

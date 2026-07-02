@@ -14,7 +14,7 @@ OverallRiskSummaries(
 )
 }
 \arguments{
-\item{fit}{the fit object}
+\item{fit}{an object of class "bkmrfit"}
 
 \item{qs}{vector of quantiles at which to calculate the overall risk summary}
 

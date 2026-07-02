@@ -17,7 +17,7 @@ ComputePostmeanHnew(
 )
 }
 \arguments{
-\item{fit}{a fitted object of the type bkmrGS}
+\item{fit}{an object of class "bkmrfit"}
 
 \item{y}{a vector of outcome data of length \code{n}.}
 
