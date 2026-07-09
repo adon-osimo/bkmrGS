@@ -119,7 +119,7 @@ Liu_data
 #fit bkmr::kmbayes and get a plotable object
 bkmr_model <- bkmrGS(y ~ h(Log_Lead, Log_Manganese, Log_Arsenic, mod = NULL) + Age + Gestation + Delivery, 
                           data = Liu_data,
-                          iter = 100, 
+                          iter = 1000, 
                           verbose = FALSE) 
 bkmr_input <- PredictorResponseUnivar(fit = bkmr_model,
                                       method = "exact",
