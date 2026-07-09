@@ -104,7 +104,8 @@ build_user_changeable_data <- function(exposure, analysis, m.fixed, qs, q.fixed,
 }
 
 build_prediction_function <- function(sel){
-  c("preds.fun <- function(znew, modnew) { #do not comment out this line",
+  c("library(ggplot2)",
+    "preds.fun <- function(znew, modnew) { #do not comment out this line",
     "ComputePostmeanHnew(fit = fit,",
     "y = fit$y,",
     "Z = fit$Z,",
@@ -198,6 +199,26 @@ build_point_constructor <- function(exposure, analysis){
                      "which.mod <- levels(modifier)",
                      "which.z = 1:ncol(Z)")
       )
+      
+      ret <- c(ret, c("Z_support <- function(Z, mod.diff, modifier){",
+                      "  mins <- c()",
+                      "  maxs <- c()",
+                      "  for(idx in mod.diff){",
+                      "    mod_idx <- which(modifier==idx)",
+                      "    mins <- rbind(mins, apply(Z[mod_idx,], 2, min))",
+                      "    maxs <- rbind(maxs, apply(Z[mod_idx,], 2, max))",
+                      "  }",
+                      "  expo_min <- apply(mins, 2, max)",
+                      "  expo_max <- apply(maxs, 2, min)",
+                      "  Z_idx <- c()",
+                      "  for(z_col in 1:ncol(Z)){",
+                      "    sub_z <- Z[,z_col]",
+                      "    Z_idx <- cbind(Z_idx, sub_z > expo_min[z_col] & sub_z < expo_max[z_col])",
+                      "  }",
+                      "  Z_for_quants <- Z[which(rowSums(Z_idx)==ncol(Z)),]",
+                      "  return(Z_for_quants)",
+                      "}"))
+      
     }
   }
   
@@ -620,7 +641,7 @@ generate_interpretation <- function(exposure, analysis){
                     ""  ,
                     "$$h_{w}(Z^{qs}) - h_{w}(Z^{q.fixed})$$",
                     ""  ,
-                    "where \\(h_w (Z)\\) denotes the group-specific exposure-response function,\\(Z^{qs}\\) represents all exposures jointly set to the specified quantiles, and\\(Z^{q.fixed}\\) represents the exposures set to the reference quantiles. ",
+                    "where \\(h_w (Z)\\) denotes the group-specific exposure-response function, \\(Z^{qs}\\) represents all exposures jointly set to the specified quantiles, and \\(Z^{q.fixed}\\) represents the exposures set to the reference quantiles. ",
                     "",
                     "The estimated value (`est`) can be interpreted as the expected change in the outcome for modifier group \\(w\\) when the exposure mixture shifts jointly from the reference quantile to the specified quantile. Graphically, we see these estimates as a point, surrounded by a Wald confidence interval. "))
   }
