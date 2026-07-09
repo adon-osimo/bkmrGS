@@ -250,7 +250,7 @@ server <- function(input, output, session){
       user_choices = c('NULL')
     }
     
-    if(input$analysis != "Group Specific"){
+    if(input$analysis == "Between Groups"){
       return(NULL)
     }
     
