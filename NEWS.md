@@ -1,3 +1,3 @@
 # bkmrGS 0.1.0
 
-This package is based on the `bkmr` package version 0.2.2. To the `bkmr` package, we have added a BKMR model with a group-separable kernel to allow for performing subgroup analyses and estimating effect modification in a single model. The `kmbayes` function defaults to fitting this model. Predictions functions work similarly to the prediction functions in the `bkmr` package, with the addition of including the modification component. 
+This package is based on the `bkmr` package version 0.2.2. To the `bkmr` package, we have added a BKMR model with a group-separable kernel to allow for performing subgroup analyses and estimating effect modification in a single model. The `bkmrGS` function defaults to fitting this model. Predictions functions work similarly to the prediction functions in the `bkmr` package, with the addition of including the modification component. 
