@@ -67,7 +67,7 @@ build_user_changeable_data <- function(exposure, analysis, m.fixed, qs, q.fixed,
                     paste0("q.fixed <- ", as.character(q.fixed), " ")))
   }
   
-  if (analysis == "Group Specific"){
+  if (analysis != "Between Groups"){
     ret <- c(ret, c("",
                     paste0("m.fixed <- '", as.character(m.fixed), "' ")))
   }
@@ -196,9 +196,14 @@ build_point_constructor <- function(exposure, analysis){
       ret <- c(ret,c("Z <- fit$Z",
                      "modifier <- fit$modifier",
                      "z.names <- paste0('z', 1:ncol(Z))",
-                     "which.mod <- levels(modifier)",
-                     "which.z = 1:ncol(Z)")
-      )
+                     "  if (m.fixed == 'NULL') {",
+                     "    which.mod <- NULL",
+                     "  } else if (m.fixed == 'All') {",
+                     "    which.mod <- levels(modifier)",
+                     "  } else {",
+                     "    which.mod <- m.fixed",
+                     "  }",
+                     "which.z = 1:ncol(Z)"))
       
       ret <- c(ret, c("Z_support <- function(Z, mod.diff, modifier){",
                       "  mins <- c()",
@@ -476,9 +481,9 @@ build_iteration_engine <- function(exposure, analysis){
       "  }",
       "  res <- dplyr::tibble(z = z1, modifier = mod_new, est = preds.plot, se = se.plot)",
       "  if(is.null(mod_new)){",
-      "    df0 <- dplyr::mutate(res, variable = z.names[i]) %>% dplyr::select_at(c('variable', 'z', 'est', 'se'))",
+      "    df0 <- dplyr::select(dplyr::mutate(res, variable = z.names[i]), variable, z, est, se)",
       "  }else{",
-      "    df0 <- dplyr::mutate(res, variable = z.names[i]) %>% dplyr::select_at(c('variable', 'z', 'modifier', 'est', 'se'))",
+      "    df0 <- dplyr::select(dplyr::mutate(res, variable = z.names[i]), variable, z, modifier, est, se)",
       "  }      ",
       "  results <- dplyr::bind_rows(results, df0)",
       "}",
@@ -608,8 +613,8 @@ build_plotting <- function(exposure, analysis, m.fixed){
   }
   
   else if(exposure == "Single" && analysis == "Response Function"){
-    c(
-      "plot_obj <- ggplot(results, aes(z, est, ymin = est - 1.96*se, ",
+    if(m.fixed != "NULL"){
+      c("plot_obj <- ggplot(results, aes(z, est, ymin = est - 1.96*se, ",
       "                             ymax = est + 1.96*se, color = modifier, fill = modifier, linetype = modifier)) + ", #split this apart to accept mod = NULL values 
       "  geom_smooth(stat = 'identity') + ",
       "  geom_hline(yintercept=0)+",
@@ -618,8 +623,19 @@ build_plotting <- function(exposure, analysis, m.fixed){
       "  ylab('Ylab') +",
       "  theme_classic() +",
       "  theme(legend.position = 'bottom')+",
-      "  labs(color='modifier_name', fill = 'modifier_name', linetype = 'modifier_name')" #split this apart to accept mod = NULL values 
-    )
+      "  labs(color='modifier_name', fill = 'modifier_name', linetype = 'modifier_name')")
+    }
+    else{
+      c("plot_obj <- ggplot(results, aes(z, est, ymin = est - 1.96*se, ",
+        "                             ymax = est + 1.96*se)) + ", #split this apart to accept mod = NULL values 
+        "  geom_smooth(stat = 'identity') + ",
+        "  geom_hline(yintercept=0)+",
+        "  facet_wrap(vars(variable)) +",
+        "  xlab('Xlab') +",
+        "  ylab('Ylab') +",
+        "  theme_classic() +",
+        "  theme(legend.position = 'bottom')")
+    }
   }
 }
 
