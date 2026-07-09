@@ -188,10 +188,24 @@ server <- function(input, output, session){
     
     tagList(
       
-      textInput(
-        "qs",
-        "(qs) exposure Quantiles (e.g. c(0.25, 0.5, 0.75) or seq(0.25, 0.75, by = 0.05))",
-        value = "seq(0.25, 0.75, by = 0.05)"
+      radioButtons(
+        "qs_option",
+        "(qs) Exposure Quantiles",
+        choices = c(
+          "c(0.25, 0.5, 0.75)" = "default",
+          "seq(0.25, 0.75, by = 0.05)" = "sequence",
+          "Manual" = "manual"
+        ),
+        selected = "sequence"
+      ),
+      
+      conditionalPanel(
+        condition = "input.qs_option == 'manual'",
+        textInput(
+          "qs_manual",
+          "(qs) Enter exposure quantiles as an array (c(. . .))",
+          value = "c(0.25, 0.5, 0.75)"
+        )
       ),
       
       numericInput(
@@ -203,6 +217,24 @@ server <- function(input, output, session){
           step = 0.05
         )
 
+    )
+    
+  })
+  
+  qs <- reactive({
+    
+    # Only used for Overall exposure analyses
+    if (is.null(input$exposure) || input$exposure != "Overall") {
+      return(NULL)
+    }
+    
+    req(input$qs_option)
+    
+    switch(
+      input$qs_option,
+      default  = "c(0.25, 0.5, 0.75)",
+      sequence = "seq(0.25, 0.75, by = 0.05)",
+      manual   = input$qs_manual
     )
     
   })
@@ -390,7 +422,7 @@ server <- function(input, output, session){
       centered = input$centered,
       sel = '1:10',
       m.fixed = input$m.fixed,
-      qs = input$qs,
+      qs = qs(),
       q.fixed = input$q.fixed,
       qs.diff = input$qs.diff, 
       mod.diff = input$mod.diff,
@@ -408,7 +440,7 @@ server <- function(input, output, session){
       analysis = input$analysis,
       centered = input$centered,
       m.fixed = input$m.fixed,
-      qs = input$qs,
+      qs = qs(),
       q.fixed = input$q.fixed,      
       qs.diff = input$qs.diff, 
       mod.diff = input$mod.diff,
