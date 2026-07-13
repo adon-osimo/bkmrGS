@@ -11,7 +11,7 @@
 #' @param ... other arguments to pass onto the plotting function
 #' @export
 #' @import graphics
-#' @details For guided examples, see vignette(VignettteDraft)
+#' @details For guided examples, see vignette('Vignettte')
 #' 
 #' @return No return value, generates plot
 #' 
