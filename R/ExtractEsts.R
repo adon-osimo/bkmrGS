@@ -251,6 +251,7 @@ ExtractSamps <- function(fit, par = NULL, sel = NULL) {
   }
   
   if (!is.null(ncol(beta))) colnames(beta) <- paste0("beta", 1:ncol(beta))
+  if (!is.null(ncol(lambda))) colnames(lambda) <- paste0("lambda", 1:ncol(lambda))
   colnames(r) <- paste0("r", 1:ncol(r))
   colnames(h) <- paste0("h", 1:ncol(h))
   if (!is.null(fit$hnew)) colnames(hnew) <- paste0("hnew", 1:ncol(hnew))
