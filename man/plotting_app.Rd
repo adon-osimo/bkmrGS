@@ -6,6 +6,26 @@
 \usage{
 plotting_app()
 }
+\value{
+No return value, lauches a Shiny App
+}
 \description{
-Launch the group-separable BKMR Shiny App
+Takes no argument and launches a shiny app that returns a preview plot, a full plot, the code used to generate those plots, a results table, and a highlighted interpretation section
+}
+\details{
+For guided examples and troubleshooting, see `Exposure-Response Relationship With Shiny` section in vignette('Vignettte')
+}
+\examples{
+set.seed(111) 
+fitkm <- bkmrGS(y ~ h(Log_Lead, Log_Manganese, Log_Arsenic, mod = Sex) +
+                          Age + Gestation + Delivery + Birth_order +
+                          Education_parent1 + Education_parent2 + Smoking +
+                          HOME_emotional + HOME_avoid + HOME_careg + 
+                          HOME_env + HOME_play + HOME_stim + 
+                          Energy,
+                        data = Liu_data, 
+                        iter = 10, 
+                        verbose = FALSE) 
+plotting_app()
+
 }
