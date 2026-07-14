@@ -39,7 +39,7 @@ No return value, generates plot
 Fits a trace plot of the given parameter, along with the posterior mean estimate
 }
 \details{
-For guided examples, see vignette(Vignettte)
+For guided examples, see vignette('Vignettte')
 }
 \examples{
 set.seed(111) 
