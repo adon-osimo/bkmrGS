@@ -1,7 +1,7 @@
 Package: bkmrGS
 Type: Package
 Title: Bayesian Kernel Machine Regression with Group Separable Kernel
-Version: 0.1.0
+Version: 1.0.0
 Authors@R: c(person(given = "Danielle",
                     family = "Demateis",
                     role = c("aut", "cre"),
