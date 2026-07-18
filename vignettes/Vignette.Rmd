@@ -79,7 +79,7 @@ observation belongs to. The model is
 
 $$y_i = h_{w_i}(\mathbf{z_i}) + X_i^T\beta + \epsilon_i$$
 
-Where each group $w_i$ has its own exposure-response function $h_{w_i}(\cdot)$. When observations $i$ and $j$ belong to the same group, $w_i = w_j$, we have a new group Separable kernel in the form of
+Where each group $w_i$ has its own exposure-response function $h_{w_i}(\cdot)$. When observations $i$ and $j$ belong to the same group, $w_i = w_j$, we have a new group separable kernel in the form of
 
 $$K_g(\mathbf{z_i, z_j}, w_i, w_j, \mathbf{\tau^{gs}, r^{gs}}) =\tau^{gs}_{w_i} \cdot \exp\Bigg[ - \sum_{m=1}^M {r^{gs}_{m,w_i}(z_{im} - z_{jm})^2} \Bigg]$$
 
@@ -232,12 +232,12 @@ Checking](#model-checking). Here, `bkmrGS()` takes the
 arguments
 
 -   `formula` a formula which takes the form of
-    `y ~ h(Z_1,..., Z_k, mod = modifier_name) + X_1 +...+X_n` where
+    `y ~ h(Z_1, ..., Z_k, mod = modifier_name) + X_1 + ... + X_n` where
 
     -   `y`, the name of a column in the data frame that is the
         response, note that it must be a column of a continuous variable
 
-    -   `h(Z_1, Z_2, ... ,Z_k, mod = modifier_name)`, the names of every
+    -   `h(Z_1, ... , Z_k, mod = modifier_name)`, the names of every
         exposure included in the model (the `Z`'s), and the the name of
         the modifier column (`mod`). This is default set to NULL and runs standard BKMR.
 
