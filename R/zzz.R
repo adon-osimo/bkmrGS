@@ -1,5 +1,12 @@
 .onAttach <- function(libname, pkgname) {
-  packageStartupMessage("For guided examples, see vignette('Vignette'). This package is based on the bkmr package version 0.2.2.")
+  
+  version <- utils::packageVersion(pkgname)
+  
+  packageStartupMessage(paste0(
+    "bkmrGS", version, "\n",
+    "Bayesian Kernel Machine Regression with Group Seperable Kernel Functionality\n",
+    "For guided examples, see vignette('Vignette'). This package is based on the bkmr package version 0.2.2."
+  ))
 }
 
 release_questions <- function() {
@@ -9,5 +16,5 @@ release_questions <- function() {
 }
 
 if (getRversion() >= "2.15.1") {
-  utils::globalVariables("ex_data")
+  utils::globalVariables("Liu_data")
 }
