@@ -25,7 +25,8 @@ generate_code <- function(
     q.fixed = NULL,
     qs.diff = NULL,
     mod.diff = NULL,
-    ngrid = NULL){
+    ngrid = NULL,
+    alpha = NULL){
   
   
   code <- c(
@@ -38,7 +39,7 @@ generate_code <- function(
     build_point_constructor(exposure, analysis),
     build_iteration_engine(exposure, analysis),
     build_output_formatter(exposure, analysis),
-    build_plotting(exposure, analysis, m.fixed)
+    build_plotting(exposure, analysis, m.fixed, mod.diff, alpha)
   )
   
   paste(code, collapse = "\n")
@@ -525,13 +526,14 @@ build_output_formatter <- function(exposure, analysis){
 
 #Need to change this to only have the plot_obj returned
 #I think this is good, just have to check that what I am calling on is correct
-build_plotting <- function(exposure, analysis, m.fixed){
-  
+build_plotting <- function(exposure, analysis, m.fixed, mod.diff, alpha){
+
   if(exposure == "Overall" && analysis == "Group Specific"){
     if(m.fixed != "NULL"){
-      c("plot_obj <- ggplot(results,",
-      "       aes(x=quantile, y = est, ymin = est - 1.96*sd,",
-      "           ymax = est + 1.96*sd, color = modifier, shape = modifier)) + ", 
+      c(paste0("crit_val <- qnorm(1 - ", alpha, "/2)"),
+      "plot_obj <- ggplot(results,",
+      "       aes(x=quantile, y = est, ymin = est - crit_val*sd,",
+      "           ymax = est + crit_val*sd, color = modifier, shape = modifier)) + ", 
       "  geom_hline(yintercept = 0) +",
       "  geom_pointrange(position = position_dodge(width = 0.05), size = 0.5) +",
       "  theme_bw()+",
@@ -539,13 +541,14 @@ build_plotting <- function(exposure, analysis, m.fixed){
       "        axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + ",
       "  xlab('Quantiles')+",
       "  ylab('Difference in Response \n per Change in Exposure') + ",
-      "  labs(color='modifier_name', shape = 'modifier_name')" ) 
+      "  labs(color= fit$mod_name, shape = fit$mod_name)" ) 
     }
     
     else{
-      c("plot_obj <- ggplot(results,",
-        "       aes(x=quantile, y = est, ymin = est - 1.96*sd,",
-        "           ymax = est + 1.96*sd)) + ", 
+      c(paste0("crit_val <- qnorm(1 - ", alpha, "/2)"),
+        "plot_obj <- ggplot(results,",
+        "       aes(x=quantile, y = est, ymin = est - crit_val*sd,",
+        "           ymax = est + crit_val*sd)) + ", 
         "  geom_hline(yintercept = 0) +",
         "  geom_pointrange(position = position_dodge(width = 0.05), size = 0.5) +",
         "  theme_bw()+",
@@ -559,9 +562,10 @@ build_plotting <- function(exposure, analysis, m.fixed){
   else if(exposure == "Single" && analysis == "Group Specific"){
     
     if(m.fixed != "NULL"){
-      c("plot_obj <- ggplot(results,",
-        "                   aes(x=q.fixed, y = est, ymin = est - 1.96*sd,",
-        "                       ymax = est + 1.96*sd, color = modifier, ", 
+      c(paste0("crit_val <- qnorm(1 - ", alpha, "/2)"),
+        "plot_obj <- ggplot(results,",
+        "                   aes(x=q.fixed, y = est, ymin = est - crit_val*sd,",
+        "                       ymax = est + crit_val*sd, color = modifier, ", 
         "                       shape = modifier))+",
         "  geom_hline(yintercept=0)+",
         "  geom_pointrange(position = position_dodge(width = 0.05), size=0.5)+",
@@ -571,13 +575,14 @@ build_plotting <- function(exposure, analysis, m.fixed){
         "        axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + ",
         "        xlab('Quantile')+",
         "        ylab('Difference in Response \n per Change in Exposure') +",
-        "        labs(color='modifier_name', shape = 'modifier_name')")  
+        "        labs(color= fit$mod_name, shape = fit$mod_name)")  
     }
     
     else{
-      c("plot_obj <- ggplot(results,",
-        "                   aes(x=q.fixed, y = est, ymin = est - 1.96*sd,",
-        "                       ymax = est + 1.96*sd))+",
+      c(paste0("crit_val <- qnorm(1 - ", alpha, "/2)"),
+        "plot_obj <- ggplot(results,",
+        "                   aes(x=q.fixed, y = est, ymin = est - crit_val*sd,",
+        "                       ymax = est + crit_val*sd))+",
         "  geom_hline(yintercept=0)+",
         "  geom_pointrange(position = position_dodge(width = 0.05), size=0.5)+",
         "  facet_wrap(vars(variable))+",
@@ -590,49 +595,54 @@ build_plotting <- function(exposure, analysis, m.fixed){
   }
   
   else if(exposure == "Overall" && analysis == "Between Groups"){
-      c("plot_obj <- ggplot(results, aes(x=quantile, y = est,", 
-      "                    ymin = est - 1.96*sd, ymax = est + 1.96*sd))+",
-      "   geom_hline(yintercept=0)+",
-      "   geom_pointrange(size=0.5)+",
-      "   theme_bw()+",
-      "   theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))+",
-      "   xlab('CHANGE THIS X-AXIS')+",
-      "   ylab('CHANGE THIS Y-AXIS')")
+      c(paste0("crit_val <- qnorm(1 - ", alpha, "/2)"),
+        "plot_obj <- ggplot(results, aes(x=quantile, y = est,", 
+        "                    ymin = est - crit_val*sd, ymax = est + crit_val*sd))+",
+        "   geom_hline(yintercept=0)+",
+        "   geom_pointrange(size=0.5)+",
+        "   theme_bw()+",
+        "   theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))+",
+        "        xlab('Quantile')+",
+        paste0("        ylab('Difference in Association Between Modifier Groups ", eval(parse(text = mod.diff))[1], " and ", eval(parse(text = mod.diff))[2], "')")
+        )
   }
   
   else if(exposure == "Single" && analysis == "Between Groups"){
-    c("plot_obj <- ggplot(results, aes(x='', y = est,", 
-      "                    ymin = est - 1.96*sd, ymax = est + 1.96*sd))+",
+    c(paste0("crit_val <- qnorm(1 - ", alpha, "/2)"),
+      "plot_obj <- ggplot(results, aes(x='', y = est,", 
+      "                    ymin = est - crit_val*sd, ymax = est + crit_val*sd))+",
       "   geom_hline(yintercept=0)+",
       "   geom_pointrange(size=0.5)+",
       "   facet_wrap(vars(variable))+",
       "   theme_bw()+",
       "   theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))+",
-      "   xlab('CHANGE THIS X-AXIS')+",
-      "   ylab('CHANGE THIS Y-AXIS')")
+      paste0("        ylab('Difference in Association Between Modifier Groups ", eval(parse(text = mod.diff))[1], " and ", eval(parse(text = mod.diff))[2], "')")
+      )
   }
   
   else if(exposure == "Single" && analysis == "Response Function"){
     if(m.fixed != "NULL"){
-      c("plot_obj <- ggplot(results, aes(z, est, ymin = est - 1.96*se, ",
-      "                             ymax = est + 1.96*se, color = modifier, fill = modifier, linetype = modifier)) + ", #split this apart to accept mod = NULL values 
-      "  geom_smooth(stat = 'identity') + ",
-      "  geom_hline(yintercept=0)+",
-      "  facet_wrap(vars(variable)) +",
-      "  xlab('Xlab') +",
-      "  ylab('Ylab') +",
-      "  theme_classic() +",
-      "  theme(legend.position = 'bottom')+",
-      "  labs(color='modifier_name', fill = 'modifier_name', linetype = 'modifier_name')")
-    }
-    else{
-      c("plot_obj <- ggplot(results, aes(z, est, ymin = est - 1.96*se, ",
-        "                             ymax = est + 1.96*se)) + ", #split this apart to accept mod = NULL values 
+      c(paste0("crit_val <- qnorm(1 - ", alpha, "/2)"),
+        "plot_obj <- ggplot(results, aes(z, est, ymin = est - crit_val*se, ",
+        "                             ymax = est + crit_val*se, color = modifier, fill = modifier, linetype = modifier)) + ", #split this apart to accept mod = NULL values 
         "  geom_smooth(stat = 'identity') + ",
         "  geom_hline(yintercept=0)+",
         "  facet_wrap(vars(variable)) +",
-        "  xlab('Xlab') +",
-        "  ylab('Ylab') +",
+        "  xlab('Exposure level ')+",
+        "  ylab('Exposure-response function (h)')",
+        "  theme_classic() +",
+        "  theme(legend.position = 'bottom')+",
+        "  labs(color='modifier_name', fill = 'modifier_name', linetype = 'modifier_name')")
+    }
+    else{
+      c(paste0("crit_val <- qnorm(1 - ", alpha, "/2)"),
+        "plot_obj <- ggplot(results, aes(z, est, ymin = est - crit_val*se, ",
+        "                             ymax = est + crit_val*se)) + ", #split this apart to accept mod = NULL values 
+        "  geom_smooth(stat = 'identity') + ",
+        "  geom_hline(yintercept=0)+",
+        "  facet_wrap(vars(variable)) +",
+        "  xlab('Exposure level ')+",
+        "  ylab('Exposure-response function (h)')",
         "  theme_classic() +",
         "  theme(legend.position = 'bottom')")
     }
