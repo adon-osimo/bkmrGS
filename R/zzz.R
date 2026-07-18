@@ -3,7 +3,7 @@
   version <- utils::packageVersion(pkgname)
   
   packageStartupMessage(paste0(
-    "bkmrGS ", version, "\n",
+    "bkmrGS version ", version, "\n",
     "Bayesian Kernel Machine Regression with Group Seperable Kernel Functionality\n",
     "For guided examples, see vignette('Vignette'). This package is based on the bkmr package version 0.2.2."
   ))
