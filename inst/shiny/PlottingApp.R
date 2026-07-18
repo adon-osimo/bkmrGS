@@ -51,6 +51,7 @@ ui <- fluidPage(
       uiOutput("exposure_Single_2"),
       uiOutput("analysis_er"),
       uiOutput("interpretation"),
+      uiOutput("error_bar_spec"),
       
       hr(),
       
@@ -192,8 +193,8 @@ server <- function(input, output, session){
         "qs_option",
         "(qs) Exposure Quantiles",
         choices = c(
-          "c(0.25, 0.5, 0.75)" = "default",
-          "seq(0.25, 0.75, by = 0.05)" = "sequence",
+          "25th, 50th, 75th" = "default",
+          "25th, 30th, 35th, . . ., 75th" = "sequence",
           "Manual" = "manual"
         ),
         selected = "sequence"
@@ -210,7 +211,7 @@ server <- function(input, output, session){
       
       numericInput(
           "q.fixed",
-          "(q.fixed) Quantile Fixed At",
+          "(q.fixed) Fixed Quantile for Comparison",
           value = 0.5,
           min = 0,
           max = 1,
@@ -304,7 +305,7 @@ server <- function(input, output, session){
       
       numericInput(
         "q.fixed",
-        "(q.fixed) Quantile Fixed At",
+        "(q.fixed) Fixed Quantile for Comparison",
         value = 0.5,
         min = 0,
         max = 1,
@@ -334,7 +335,7 @@ server <- function(input, output, session){
       
       numericInput(
         "q.fixed",
-        "(q.fixed) Quantile Fixed At",
+        "(q.fixed) Fixed Quantile for Comparison",
         value = 0.5,
         min = 0,
         max = 1,
@@ -356,7 +357,7 @@ server <- function(input, output, session){
     
       numericInput(
         "ngrid",
-        "(ngrid) Ngrid",
+        "(ngrid) Number of Grid Points",
         value = 50,
         min = 1,
         max = 100,
@@ -365,7 +366,7 @@ server <- function(input, output, session){
       
       numericInput(
         "q.fixed",
-        "Quantile Fixed At",
+        "(q.fixed) Quantile Fixed At",
         value = 0.5,
         min = 0,
         max = 1,
@@ -408,6 +409,20 @@ server <- function(input, output, session){
     )
   })
   
+  output$error_bar_spec <- renderUI({
+    
+    tagList(
+      numericInput(
+        "alpha",
+        "Set alpha level",
+        value = 0.05,
+        min = 0,
+        max = 1
+      )
+    )
+    
+  })
+  
   observe({
     input$exposure
     input$analysis
@@ -426,7 +441,8 @@ server <- function(input, output, session){
       q.fixed = input$q.fixed,
       qs.diff = input$qs.diff, 
       mod.diff = input$mod.diff,
-      ngrid = input$ngrid
+      ngrid = input$ngrid,
+      alpha = input$alpha
     )
   })
   
@@ -444,7 +460,8 @@ server <- function(input, output, session){
       q.fixed = input$q.fixed,      
       qs.diff = input$qs.diff, 
       mod.diff = input$mod.diff,
-      ngrid = input$ngrid
+      ngrid = input$ngrid,
+      alpha = input$alpha
     )
   })
   
