@@ -1016,11 +1016,15 @@ bkmrGS <- function(formula, data,
   Z <- data[Z_names]
   modifier <- mod_name
   
-  return(kmbayesBlocked(y, Z, X, modifier, 
-                        iter, family, id, verbose, starting.values, control.params, varsel, 
-                        groups, knots, ztest, rmethod,
-                        est.h, kernel.method,
-                        gs.tau, gs.sig, burnin))
+  fit <- kmbayesBlocked(y, Z, X, modifier, 
+                          iter, family, id, verbose, starting.values, control.params, varsel, 
+                          groups, knots, ztest, rmethod,
+                          est.h, kernel.method,
+                          gs.tau, gs.sig, burnin)
+  fit$formula <- formula
+  fit$mod_name <- mod_name
+  
+  return(fit)
   
   
 }
