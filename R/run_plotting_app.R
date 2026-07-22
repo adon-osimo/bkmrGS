@@ -3,7 +3,7 @@
 #' Takes no argument and launches a shiny app that returns a preview plot, a full plot, the code used to generate those plots, a results table, and a highlighted interpretation section
 #' 
 #' @export
-#' @details For guided examples and troubleshooting, see `Exposure-Response Relationship With Shiny` section in vignette('Vignettte')
+#' @details For guided examples and troubleshooting, see `Exposure-Response Relationship With Shiny` section in vignettes('bkmrGS_Vignette')
 #' 
 #' @return No return value, lauches a Shiny App
 #' 

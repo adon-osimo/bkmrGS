@@ -14,7 +14,7 @@
 #'   \item If \code{method == "approx"}, the argument \code{sel} defaults to the second half of the MCMC iterations.
 #'   \item If \code{method == "exact"}, the argument \code{sel} defaults to keeping every 10 iterations after dropping the first 50\% of samples, or if this results in fewer than 100 iterations, than 100 iterations are kept
 #' }
-#' For guided examples and additional information, see vignette(bkmrGSOverview)
+#' For guided examples and additional information, see vignettes('bkmrGS_Vignette')
 #' @export
 #' 
 #' @return a list of length two containing the posterior mean vector and posterior variance matrix 

@@ -74,7 +74,7 @@ CalcPIPs <- function(fit, sel = NULL) {
 #' @param z.names optional argument providing the names of the variables included in the \code{h} function.
 #'
 #' @return a data frame with the variable-specific PIPs for BKMR fit with component-wise variable selection, and with the group-specific and conditional (within-group) PIPs for BKMR fit with hierarchical variable selection.
-#' @details For guided examples, see vignette(bkmrGSOverview)
+#' @details For guided examples, see vignettes('bkmrGS_Vignette')
 #' @export
 #' 
 ExtractPIPs <- function(fit, sel = NULL, z.names = NULL) {

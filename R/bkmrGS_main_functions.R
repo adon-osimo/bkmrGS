@@ -860,7 +860,7 @@ kmbayesBlocked <- function(y, Z, X,
 #'   \item \code{\link{summary}} (i.e., \code{\link{summary.bkmrfit}})
 #' }
 #' 
-#' @seealso For guided examples, see vignette(VignetteDraft)
+#' @seealso For guided examples, see vignettes('bkmrGS_Vignette')
 #' @references Bobb, JF, Valeri L, Claus Henn B, Christiani DC, Wright RO, Mazumdar M, Godleski JJ, Coull BA (2015). Bayesian Kernel Machine Regression for Estimating the Health Effects of Multi-Pollutant Mixtures. Biostatistics 16, no. 3: 493-508.
 #' @references Banerjee S, Gelfand AE, Finley AO, Sang H (2008). Gaussian predictive process models for large spatial data sets. Journal of the Royal Statistical Society: Series B (Statistical Methodology), 70(4), 825-848.
 #' @import utils
@@ -1143,7 +1143,7 @@ summary.bkmrfit <- function(object, q = c(0.025, 0.975), digits = 5, show_ests =
         paste(
           "Low Metropolis Hastings acceptance rates (<20%):",
           paste(low_acc, collapse = ", "),
-          "- chain mixes poorly. Check the 'User Implemented Changes' section in vignettes(VignetteDraft) for more help"
+          "- chain mixes poorly. Check the 'User Implemented Changes' section in vignettes('bkmrGS_Vignette') for more help"
         )
       )
     }
@@ -1154,7 +1154,7 @@ summary.bkmrfit <- function(object, q = c(0.025, 0.975), digits = 5, show_ests =
         paste(
           "High Metropolis Hastings acceptance rates (>50%):",
           paste(high_acc, collapse = ", "),
-          "- proposals may be too small. Check the 'User Implemented Changes' section in vignettes(VignetteDraft) for more help"
+          "- proposals may be too small. Check the 'User Implemented Changes' section in vignettes('bkmrGS_Vignette') for more help"
         )
       )
     }
@@ -1212,7 +1212,7 @@ summary.bkmrfit <- function(object, q = c(0.025, 0.975), digits = 5, show_ests =
         paste(
             "Low effective sample size (<500):",
             paste(low_ess, collapse = ", "),
-            "- posterior estimates may be unstable. Check the 'User Implemented Changes' section in vignettes(VignetteDraft) for more help"
+            "- posterior estimates may be unstable. Check the 'User Implemented Changes' section in vignettes('bkmrGS_Vignette') for more help"
         )
       )
     }
@@ -1223,7 +1223,7 @@ summary.bkmrfit <- function(object, q = c(0.025, 0.975), digits = 5, show_ests =
         paste(
           "Very low effective sample size (<100):",
           paste(very_low_ess, collapse = ", "),
-          "- convergence is questionable. Check the 'User Implemented Changes' section in vignettes(VignetteDraft) for more help"
+          "- convergence is questionable. Check the 'User Implemented Changes' section in vignettes('bkmrGS_Vignette') for more help"
         )
       )
     }
@@ -1234,7 +1234,7 @@ summary.bkmrfit <- function(object, q = c(0.025, 0.975), digits = 5, show_ests =
         paste(
           "Effective sample size is NULL:",
           paste(null_ess, collapse = ", "),
-          "- convergence has not been attained. Check the 'User Implemented Changes' section in vignettes(VignetteDraft) for more help"
+          "- convergence has not been attained. Check the 'User Implemented Changes' section in vignettes('bkmrGS_Vignette') for more help"
         )
       )
     }

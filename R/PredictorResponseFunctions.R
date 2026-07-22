@@ -274,7 +274,7 @@ PredictorResponseBivarPair <- function(fit, y = NULL, Z = NULL, X = NULL, modifi
 #' @param z.pairs data frame showing which pairs of predictors to plot
 #' @param ngrid number of grid points in each dimension
 #' @param verbose TRUE or FALSE: flag of whether to print intermediate output to the screen
-#' @details For guided examples, see vignette(bkmrGSOverview)
+#' @details For guided examples, see vignettes('bkmrGS_Vignette')
 #' @export
 #' 
 #' @return a long data frame with the name of the first predictor, the name of the second predictor, the value of the first predictor, the value of the second predictor, the posterior mean estimate, and the posterior standard deviation of the estimated exposure response function
@@ -360,7 +360,7 @@ PredictorResponseBivar <- function(fit, z.pairs = NULL,
 #' @param pred.resp.df object obtained from running the function \code{\link{PredictorResponseBivar}}
 #' @param qs vector of quantiles at which to fix the second variable
 #' @param both_pairs flag indicating whether, if \code{h(z1)} is being plotted for z2 fixed at different levels, that they should be plotted in the reverse order as well (for \code{h(z2)} at different levels of z1) 
-#' @details For guided examples, see vignette(bkmrGSOverview)
+#' @details For guided examples, see vignettes('bkmrGS_Vignette')
 #' 
 #' @return a long data frame with the name of the first predictor, the name of the second predictor, the value of the first predictor, the quantile at which the second predictor is fixed, the posterior mean estimate, and the posterior standard deviation of the estimated exposure response function
 #'  

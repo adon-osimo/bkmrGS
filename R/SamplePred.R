@@ -14,7 +14,7 @@
 #' @param ... other arguments; not currently used
 #' @inheritParams bkmrGS
 #' @inheritParams ExtractEsts
-#' @details For guided examples, see vignette(bkmrGSOverview)
+#' @details For guided examples, see vignettes('bkmrGS_Vignette')
 #' @export
 #' 
 #' @return a matrix with the posterior samples at the new points
