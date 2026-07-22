@@ -33,13 +33,13 @@ generate_code <- function(
     build_header(exposure, analysis),
     build_data_extract(fit_name),
     build_user_changeable_data(exposure, analysis, m.fixed, qs, q.fixed,
-                               qs.diff, mod.diff, ngrid),
+                               qs.diff, mod.diff, ngrid, alpha),
     build_prediction_function(sel),
     build_summary_function(analysis),
     build_point_constructor(exposure, analysis),
     build_iteration_engine(exposure, analysis),
     build_output_formatter(exposure, analysis),
-    build_plotting(exposure, analysis, m.fixed, mod.diff, alpha)
+    build_plotting(exposure, analysis, m.fixed, mod.diff)
   )
   
   paste(code, collapse = "\n")
@@ -56,7 +56,7 @@ build_data_extract <- function(fit_name){
 }
 
 build_user_changeable_data <- function(exposure, analysis, m.fixed, qs, q.fixed,
-                                       qs.diff, mod.diff, ngrid){
+                                       qs.diff, mod.diff, ngrid, alpha){
   ret <- c("#ALL OF THESE ARE CHANGEABLE AT YOUR DISCRESION",
            "#BE SURE THAT WHEN YOU RUN THIS CODE YOU UPDATE THE FOLLOWING LINES",
            "#TO REFLECT WHAT VALUES YOU WANT TO SEE")
@@ -96,7 +96,8 @@ build_user_changeable_data <- function(exposure, analysis, m.fixed, qs, q.fixed,
 
   }
   
-  ret <- c(ret, c("",
+  ret <- c(ret, c(paste0("crit_val <- qnorm(1 - ", alpha, "/2)"),
+                  "",
                   "#THE REST OF THIS CODE IS JUST RUNNABLE, DO NOT EDIT",
                   "#ANY CODE BETWEEN NOW AND plot_obj"))
   
@@ -526,12 +527,11 @@ build_output_formatter <- function(exposure, analysis){
 
 #Need to change this to only have the plot_obj returned
 #I think this is good, just have to check that what I am calling on is correct
-build_plotting <- function(exposure, analysis, m.fixed, mod.diff, alpha){
+build_plotting <- function(exposure, analysis, m.fixed, mod.diff){
 
   if(exposure == "Overall" && analysis == "Group Specific"){
     if(m.fixed != "NULL"){
-      c(paste0("crit_val <- qnorm(1 - ", alpha, "/2)"),
-      "plot_obj <- ggplot(results,",
+      c("plot_obj <- ggplot(results,",
       "       aes(x=quantile, y = est, ymin = est - crit_val*sd,",
       "           ymax = est + crit_val*sd, color = modifier, shape = modifier)) + ", 
       "  geom_hline(yintercept = 0) +",
@@ -545,8 +545,7 @@ build_plotting <- function(exposure, analysis, m.fixed, mod.diff, alpha){
     }
     
     else{
-      c(paste0("crit_val <- qnorm(1 - ", alpha, "/2)"),
-        "plot_obj <- ggplot(results,",
+      c("plot_obj <- ggplot(results,",
         "       aes(x=quantile, y = est, ymin = est - crit_val*sd,",
         "           ymax = est + crit_val*sd)) + ", 
         "  geom_hline(yintercept = 0) +",
@@ -562,8 +561,7 @@ build_plotting <- function(exposure, analysis, m.fixed, mod.diff, alpha){
   else if(exposure == "Single" && analysis == "Group Specific"){
     
     if(m.fixed != "NULL"){
-      c(paste0("crit_val <- qnorm(1 - ", alpha, "/2)"),
-        "plot_obj <- ggplot(results,",
+      c("plot_obj <- ggplot(results,",
         "                   aes(x=q.fixed, y = est, ymin = est - crit_val*sd,",
         "                       ymax = est + crit_val*sd, color = modifier, ", 
         "                       shape = modifier))+",
@@ -579,8 +577,7 @@ build_plotting <- function(exposure, analysis, m.fixed, mod.diff, alpha){
     }
     
     else{
-      c(paste0("crit_val <- qnorm(1 - ", alpha, "/2)"),
-        "plot_obj <- ggplot(results,",
+      c("plot_obj <- ggplot(results,",
         "                   aes(x=q.fixed, y = est, ymin = est - crit_val*sd,",
         "                       ymax = est + crit_val*sd))+",
         "  geom_hline(yintercept=0)+",
@@ -595,8 +592,7 @@ build_plotting <- function(exposure, analysis, m.fixed, mod.diff, alpha){
   }
   
   else if(exposure == "Overall" && analysis == "Between Groups"){
-      c(paste0("crit_val <- qnorm(1 - ", alpha, "/2)"),
-        "plot_obj <- ggplot(results, aes(x=quantile, y = est,", 
+      c("plot_obj <- ggplot(results, aes(x=quantile, y = est,", 
         "                    ymin = est - crit_val*sd, ymax = est + crit_val*sd))+",
         "   geom_hline(yintercept=0)+",
         "   geom_pointrange(size=0.5)+",
@@ -608,8 +604,7 @@ build_plotting <- function(exposure, analysis, m.fixed, mod.diff, alpha){
   }
   
   else if(exposure == "Single" && analysis == "Between Groups"){
-    c(paste0("crit_val <- qnorm(1 - ", alpha, "/2)"),
-      "plot_obj <- ggplot(results, aes(x='', y = est,", 
+    c("plot_obj <- ggplot(results, aes(x='', y = est,", 
       "                    ymin = est - crit_val*sd, ymax = est + crit_val*sd))+",
       "   geom_hline(yintercept=0)+",
       "   geom_pointrange(size=0.5)+",
@@ -622,8 +617,7 @@ build_plotting <- function(exposure, analysis, m.fixed, mod.diff, alpha){
   
   else if(exposure == "Single" && analysis == "Response Function"){
     if(m.fixed != "NULL"){
-      c(paste0("crit_val <- qnorm(1 - ", alpha, "/2)"),
-        "plot_obj <- ggplot(results, aes(z, est, ymin = est - crit_val*se, ",
+      c("plot_obj <- ggplot(results, aes(z, est, ymin = est - crit_val*se, ",
         "                             ymax = est + crit_val*se, color = modifier, fill = modifier, linetype = modifier)) + ", #split this apart to accept mod = NULL values 
         "  geom_smooth(stat = 'identity') + ",
         "  geom_hline(yintercept=0)+",
@@ -635,8 +629,7 @@ build_plotting <- function(exposure, analysis, m.fixed, mod.diff, alpha){
         "  labs(color='modifier_name', fill = 'modifier_name', linetype = 'modifier_name')")
     }
     else{
-      c(paste0("crit_val <- qnorm(1 - ", alpha, "/2)"),
-        "plot_obj <- ggplot(results, aes(z, est, ymin = est - crit_val*se, ",
+      c("plot_obj <- ggplot(results, aes(z, est, ymin = est - crit_val*se, ",
         "                             ymax = est + crit_val*se)) + ", #split this apart to accept mod = NULL values 
         "  geom_smooth(stat = 'identity') + ",
         "  geom_hline(yintercept=0)+",
