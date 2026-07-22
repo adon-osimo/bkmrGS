@@ -385,10 +385,9 @@ This package includes a Shiny app designed to make finding and running specific 
 `plotting_app()`
 
 When done, this opens the BKMR 
-Plot Generator interface. The app requires `Fit_Object_Name`, the exposure variation 
-type (`Overall`, `Single`, or `Bivariate`) and an analysis type 
-(`Group Specific`, `Between Groups` or `Response Function`). Once the exposure 
-and analysis types are specified, the corresponding inputs are displayed automatically. 
+Plot Generator interface. Note that this function does not take any arguments. The app requires `bkmrfit` object to be loaded in the environment, an exposure 
+type (`Overall`, `Single`, or `Bivariate`), an analysis type 
+(`Group Specific`, `Between Groups` or `Response Function`) and an `Alpha` level (used to construct the plotted confidence intervals). Once the exposure and analysis types are specified, the corresponding inputs are displayed automatically. 
 
 The plotting app is separated into 5 different tabs: "Preview Plot", "Full Plot", "Generated Code", "Results", and "Interpretation". Once the
 `Fit Object Name`, `Exposure Variation`, and `Analysis Type` have been specified, the application can produce a preview plot, a full plot, the code used to 
@@ -396,7 +395,7 @@ get these plots, the corresponding numerical results, and a brief generalized in
 
 Selecting the "Create Preview Plot" button quickly generates a sample plot based on the current option settings, using the first 10 observations from the supplied fit object (`sel = 1:10`). This feature is designed to visually determine if these option settings will result in the desired plot. Selecting the "Create Full Plot" button will create a plot based on the current option settings, using all observations supplied through `Fit Object Name`. This will be displayed in the Full Plot tab. The Results tab displays the data used in either Preview Plot or Full Plot used for plotting. 
 
-The Generated Code tab displays a copy-and-paste version of the code used to generate those plot. There are a few comments, but any user changeable options that are specified by the sidebar in the app are editable in the first few lines of the code. The interpretation tab gives a brief generalized interpretation for each plot combination. The interpretations are always available, but the current option settings will be highlighted in black, while the other non selected options are grayed out. 
+The Generated Code tab displays a copy-and-paste version of the code used to generate those plot. There are a few comments, but any options that are specified by the sidebar in the app are editable in the first few lines of the code. The interpretation tab gives a brief generalized interpretation for each plot combination. The interpretations are always available, but the current option settings will be highlighted in black, while the other non selected options are grayed out. 
 
 This shiny app follows a hierarchical work flow. A fit object in the current environment must be available before any plots or results can be generated. After specifying the fit object, an exposure variation type must be selected. This choice determines whether the joint exposure movement, (Overall) or a single exposure movement, (Single). Note that for the bivariate type to work, a modifier must not be present. 
 
@@ -417,6 +416,8 @@ Different Exposure Variation and Analysis Type combinations require different in
 - `qs.diff` specifies the lower and upper quantiles used for the "Single" Exposure Variation type. Note that this must be a list of exactly 2 quantiles between the values of 0 and 1. This is defaulted to `c(0.25, 0.75)`.
 
 - `mod.diff`: This argument is defaulted to `c("group_1", "group_2")` and indicates that the estimated differences corresponding to "group_2" minus "group_1". Note that this requires a modifier to be present and must be a list of exactly 2 modifier groups.
+
+- `alpha`: Significance level used to construct confidence intervals. This is defaulted to 0.05, which corresponds to a 95\% confidence interval. This must be a number between 0 and 1.
 
 Be aware that for any analysis type set to `analysis = 'Between Groups'`, there must be a modifier present for that function to return any values. 
 
