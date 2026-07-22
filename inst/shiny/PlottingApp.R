@@ -414,7 +414,7 @@ server <- function(input, output, session){
     tagList(
       numericInput(
         "alpha",
-        "Set alpha level",
+        "Alpha Level",
         value = 0.05,
         min = 0,
         max = 1
