@@ -190,7 +190,7 @@ showcasing the usability of `bkmrGS`.
 -   [Model Checking](#model-checking)
 -   [Model Output](#model-output)
 -   [Exposure-Response Relationship With Shiny](#shiny)
-    -   [Plotting_App Overview](#pao)
+    -   [plotting_app Overview](#pao)
     -   [Specified Combination Arguments](#SCA)
 
 ## Data Set and Fitting {#data-fitting}
@@ -378,7 +378,7 @@ Both functions take in a `par` argument, which indicates which parameter values 
 
 ## Exposure-Response Relationship With Shiny {#shiny}
 
-### Plotting_App Overview {#pao}
+### plotting_app Overview {#pao}
 
 This package includes a Shiny app designed to make finding and running specific plots easier. The application can be launched at any time using 
 
